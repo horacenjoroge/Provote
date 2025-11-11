@@ -115,10 +115,15 @@ jobs:
           black --check backend/ || (echo "Black check failed, showing diff:" && black --diff backend/ | head -100 && exit 1)
 
       - name: Check imports with isort
+        working-directory: .
         run: |
           python -m pip uninstall -y isort || true
           python -m pip install --no-cache-dir isort==5.13.2
           echo "isort version: $(isort --version)"
+          echo "Python version: $(python --version)"
+          echo "Working directory: $(pwd)"
+          echo "Checking pyproject.toml exists:"
+          ls -la pyproject.toml || true
           echo "Running isort check..."
           isort --check-only backend/ || (echo "isort check failed, showing diff:" && isort --diff backend/ | head -200 && exit 1)
 
