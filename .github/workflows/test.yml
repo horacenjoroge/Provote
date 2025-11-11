@@ -47,7 +47,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**/*.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**/*.txt') }}-v2
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -102,10 +102,13 @@ jobs:
       - name: Check code style with Black
         working-directory: .
         run: |
-          python -m pip install --upgrade black==23.12.1
+          python -m pip uninstall -y black || true
+          python -m pip install --no-cache-dir black==23.12.1
           echo "Black version: $(black --version)"
           echo "Python version: $(python --version)"
           echo "Working directory: $(pwd)"
+          echo "Files to check:"
+          ls -la backend/apps/analytics/apps.py || true
           black --check backend/
 
       - name: Check imports with isort
