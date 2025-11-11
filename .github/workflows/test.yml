@@ -80,6 +80,11 @@ jobs:
         run: |
           rm -f backend/test_db.sqlite3 || true
 
+      - name: Verify migrations exist
+        working-directory: backend
+        run: |
+          python manage.py showmigrations --settings=config.settings.test || true
+
       - name: Run tests
         working-directory: backend
         env:
