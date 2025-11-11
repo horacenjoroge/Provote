@@ -101,7 +101,7 @@ jobs:
 
       - name: Check code style with Black
         run: |
-          black --check backend/
+          black --check --config pyproject.toml backend/
 
       - name: Check imports with isort
         run: |
