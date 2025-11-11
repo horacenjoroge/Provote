@@ -5,17 +5,8 @@ import pytest
 from django.contrib.auth.models import User
 from apps.polls.models import Poll, Choice
 
-# Disable database serialization for pytest-django
-# This prevents errors when migrations haven't created all tables yet
+# Ensure pytest-django is loaded
 pytest_plugins = ["pytest_django"]
-
-
-@pytest.fixture(scope="session")
-def django_db_setup(django_db_setup, django_db_blocker):
-    """Ensure all migrations are applied before tests."""
-    with django_db_blocker.unblock():
-        from django.core.management import call_command
-        call_command("migrate", verbosity=0, interactive=False)
 
 
 @pytest.fixture

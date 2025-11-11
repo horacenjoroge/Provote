@@ -44,6 +44,16 @@ CELERY_TASK_EAGER_PROPAGATES = True
 # Disable logging during tests
 LOGGING_CONFIG = None
 
+# Disable database serialization for tests
+# This prevents Django from trying to serialize the database during test setup
+# which fails when migrations haven't created all tables yet
+TEST_NON_SERIALIZED_APPS = [
+    "apps.polls",
+    "apps.votes",
+    "apps.users",
+    "apps.analytics",
+]
+
 # Static directory will be created by the workflow
 # This is handled in .github/workflows/test.yml
 
