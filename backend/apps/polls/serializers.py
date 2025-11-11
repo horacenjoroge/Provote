@@ -3,7 +3,8 @@ Serializers for Polls app.
 """
 
 from rest_framework import serializers
-from .models import Poll, Choice
+
+from .models import Choice, Poll
 
 
 class ChoiceSerializer(serializers.ModelSerializer):

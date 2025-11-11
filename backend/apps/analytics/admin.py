@@ -3,6 +3,7 @@ Admin configuration for Analytics app.
 """
 
 from django.contrib import admin
+
 from .models import PollAnalytics
 
 

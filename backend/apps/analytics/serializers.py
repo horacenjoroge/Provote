@@ -3,6 +3,7 @@ Serializers for Analytics app.
 """
 
 from rest_framework import serializers
+
 from .models import PollAnalytics
 
 

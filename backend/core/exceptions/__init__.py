@@ -1,9 +1,9 @@
 from .voting_errors import (  # noqa: F401
-    VotingError,
     DuplicateVoteError,
-    PollNotFoundError,
     InvalidVoteError,
     PollClosedError,
+    PollNotFoundError,
+    VotingError,
 )
 
 __all__ = [

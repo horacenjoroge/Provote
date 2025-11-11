@@ -3,8 +3,8 @@ Pytest configuration and fixtures.
 """
 
 import pytest
+from apps.polls.models import Choice, Poll
 from django.contrib.auth.models import User
-from apps.polls.models import Poll, Choice
 
 # Ensure pytest-django is loaded
 pytest_plugins = ["pytest_django"]

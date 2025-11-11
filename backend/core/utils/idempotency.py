@@ -4,8 +4,9 @@ Idempotency utilities for ensuring vote operations are idempotent.
 
 import hashlib
 import json
-from django.core.cache import cache
+
 from django.conf import settings
+from django.core.cache import cache
 
 
 def generate_idempotency_key(user_id, poll_id, choice_id):

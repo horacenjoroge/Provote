@@ -2,10 +2,11 @@
 Tests for Poll models.
 """
 
-import pytest
-from django.utils import timezone
 from datetime import timedelta
-from apps.polls.models import Poll, Choice
+
+import pytest
+from apps.polls.models import Choice, Poll
+from django.utils import timezone
 
 
 @pytest.mark.unit

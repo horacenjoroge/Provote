@@ -3,7 +3,8 @@ Admin configuration for Polls app.
 """
 
 from django.contrib import admin
-from .models import Poll, Choice
+
+from .models import Choice, Poll
 
 
 @admin.register(Poll)

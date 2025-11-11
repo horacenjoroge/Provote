@@ -4,8 +4,8 @@ This file makes fixtures available to all tests in backend/.
 """
 
 import pytest
+from apps.polls.models import Choice, Poll
 from django.contrib.auth.models import User
-from apps.polls.models import Poll, Choice
 
 # Ensure pytest-django is loaded
 pytest_plugins = ["pytest_django"]
@@ -19,8 +19,8 @@ def django_db_setup(django_db_setup, django_db_blocker):
 
     # Then ensure all migrations are applied (in case some were missed)
     with django_db_blocker.unblock():
-        from django.core.management import call_command
         from django.apps import apps
+        from django.core.management import call_command
 
         # Ensure all apps are loaded
         apps.check_apps_ready()

@@ -3,6 +3,7 @@ Admin configuration for Votes app.
 """
 
 from django.contrib import admin
+
 from .models import Vote
 
 

@@ -2,8 +2,9 @@
 Production settings for Provote project.
 """
 
-from .base import *  # noqa: F403, F401
 import environ
+
+from .base import *  # noqa: F403, F401
 
 env = environ.Env()  # noqa: F405
 

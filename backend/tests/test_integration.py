@@ -3,12 +3,12 @@ Integration tests for Provote.
 """
 
 import pytest
-from django.test import TestCase
-from django.core.cache import cache
-from django.db import connection
-from django.contrib.auth.models import User
 import redis
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.core.cache import cache
+from django.db import connection
+from django.test import TestCase
 
 
 @pytest.mark.integration

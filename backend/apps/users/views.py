@@ -2,8 +2,9 @@
 Views for Users app.
 """
 
-from rest_framework import viewsets
 from django.contrib.auth.models import User
+from rest_framework import viewsets
+
 from .serializers import UserSerializer
 
 

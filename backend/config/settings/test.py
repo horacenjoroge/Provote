@@ -4,6 +4,7 @@ Test settings for Provote project.
 
 import os
 from pathlib import Path
+
 from .base import *  # noqa: F403, F401
 
 # Use file-based database for tests in a reliable location
