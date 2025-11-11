@@ -1,6 +1,7 @@
 """
 Integration tests for Provote.
 """
+
 import pytest
 from django.test import TestCase
 from django.core.cache import cache
@@ -81,4 +82,3 @@ class TestEnvironmentVariables:
         assert hasattr(settings, "REDIS_HOST")
         assert hasattr(settings, "REDIS_PORT")
         assert hasattr(settings, "CELERY_BROKER_URL")
-

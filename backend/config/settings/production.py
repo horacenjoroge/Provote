@@ -1,6 +1,7 @@
 """
 Production settings for Provote project.
 """
+
 from .base import *  # noqa: F403, F401
 import environ
 
@@ -61,4 +62,3 @@ LOGGING = {
         },
     },
 }
-

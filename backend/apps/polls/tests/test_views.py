@@ -1,6 +1,7 @@
 """
 Tests for Poll views.
 """
+
 import pytest
 from apps.polls.models import Poll
 
@@ -37,4 +38,3 @@ class TestPollViewSet:
         response = authenticated_client.get(f"/api/v1/polls/{poll.id}/results/")
         assert response.status_code == 200
         assert "results" in response.data
-

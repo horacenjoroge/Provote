@@ -1,6 +1,7 @@
 """
 Serializers for Analytics app.
 """
+
 from rest_framework import serializers
 from .models import PollAnalytics
 
@@ -13,4 +14,3 @@ class PollAnalyticsSerializer(serializers.ModelSerializer):
     class Meta:
         model = PollAnalytics
         fields = ["poll", "poll_title", "total_votes", "unique_voters", "last_updated"]
-

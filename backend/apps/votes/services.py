@@ -1,6 +1,7 @@
 """
 Vote services with idempotency logic.
 """
+
 from django.db import transaction
 from django.core.cache import cache
 from django.contrib.auth.models import User
@@ -75,7 +76,9 @@ def create_vote(user: User, poll_id: int, choice_id: int, idempotency_key: str =
             idempotency_key,
             {"vote_id": existing_vote.id, "status": "duplicate"},
         )
-        raise DuplicateVoteError(f"User {user.username} has already voted on poll {poll_id}")
+        raise DuplicateVoteError(
+            f"User {user.username} has already voted on poll {poll_id}"
+        )
 
     # Create vote
     with transaction.atomic():
@@ -93,4 +96,3 @@ def create_vote(user: User, poll_id: int, choice_id: int, idempotency_key: str =
         )
 
     return vote
-

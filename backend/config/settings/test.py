@@ -1,6 +1,7 @@
 """
 Test settings for Provote project.
 """
+
 import os
 from pathlib import Path
 from .base import *  # noqa: F403, F401
@@ -75,4 +76,3 @@ CELERY_RESULT_BACKEND = "cache+memory://"
 
 # Static directory will be created by the workflow
 # This is handled in .github/workflows/test.yml
-

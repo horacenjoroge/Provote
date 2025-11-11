@@ -1,6 +1,7 @@
 """
 Views for Votes app.
 """
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -50,4 +51,3 @@ class VoteViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except DuplicateVoteError as e:
             return Response({"error": str(e)}, status=status.HTTP_409_CONFLICT)
-

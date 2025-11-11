@@ -1,6 +1,7 @@
 """
 Vote models for Provote.
 """
+
 from django.db import models
 from django.contrib.auth.models import User
 from apps.polls.models import Choice, Poll
@@ -25,4 +26,3 @@ class Vote(models.Model):
 
     def __str__(self):
         return f"{self.user.username} voted for {self.choice.text} in {self.poll.title}"
-

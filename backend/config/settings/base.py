@@ -1,6 +1,7 @@
 """
 Base Django settings for Provote project.
 """
+
 import environ
 from pathlib import Path
 
@@ -144,8 +145,12 @@ CACHES = {
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = env("CELERY_BROKER_URL", default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
-CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
+CELERY_BROKER_URL = env(
+    "CELERY_BROKER_URL", default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+)
+CELERY_RESULT_BACKEND = env(
+    "CELERY_RESULT_BACKEND", default=f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
+)
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
@@ -209,4 +214,3 @@ LOGGING = {
         },
     },
 }
-

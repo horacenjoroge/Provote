@@ -1,6 +1,7 @@
 """
 Tests for Vote services.
 """
+
 import pytest
 from apps.votes.services import create_vote
 from apps.votes.models import Vote
@@ -33,11 +34,13 @@ class TestVoteService:
         """Test creating a vote with invalid choice."""
         # Create another poll
         from apps.polls.models import Poll
+
         other_poll = Poll.objects.create(
             title="Other Poll",
             created_by=user,
         )
         from apps.polls.models import Choice
+
         other_choice = Choice.objects.create(poll=other_poll, text="Other Choice")
 
         with pytest.raises(InvalidVoteError):
@@ -62,4 +65,3 @@ class TestVoteService:
         # Note: This will raise DuplicateVoteError due to unique constraint
         # In a real scenario, you'd check idempotency first
         assert vote1.idempotency_key == idempotency_key
-

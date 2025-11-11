@@ -1,6 +1,7 @@
 """
 Serializers for Polls app.
 """
+
 from rest_framework import serializers
 from .models import Poll, Choice
 
@@ -45,4 +46,3 @@ class PollCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Poll
         fields = ["title", "description", "starts_at", "ends_at", "is_active"]
-

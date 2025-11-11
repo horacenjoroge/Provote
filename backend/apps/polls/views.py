@@ -1,6 +1,7 @@
 """
 Views for Polls app.
 """
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -31,8 +32,13 @@ class PollViewSet(viewsets.ModelViewSet):
         poll = self.get_object()
         choices = poll.choices.all()
         results = [
-            {"choice_id": choice.id, "choice_text": choice.text, "votes": choice.vote_count}
+            {
+                "choice_id": choice.id,
+                "choice_text": choice.text,
+                "votes": choice.vote_count,
+            }
             for choice in choices
         ]
-        return Response({"poll_id": poll.id, "poll_title": poll.title, "results": results})
-
+        return Response(
+            {"poll_id": poll.id, "poll_title": poll.title, "results": results}
+        )

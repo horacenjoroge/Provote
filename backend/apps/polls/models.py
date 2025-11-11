@@ -1,6 +1,7 @@
 """
 Poll models for Provote.
 """
+
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -54,4 +55,3 @@ class Choice(models.Model):
     def vote_count(self):
         """Get the number of votes for this choice."""
         return self.votes.count()
-

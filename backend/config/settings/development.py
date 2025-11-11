@@ -1,6 +1,7 @@
 """
 Development settings for Provote project.
 """
+
 from .base import *  # noqa: F403, F401
 
 DEBUG = True
@@ -34,4 +35,3 @@ CSRF_COOKIE_SECURE = False
 
 # Logging for development
 LOGGING["loggers"]["django"]["level"] = "DEBUG"  # noqa: F405
-

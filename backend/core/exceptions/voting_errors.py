@@ -31,4 +31,3 @@ class PollClosedError(VotingError):
     """Raised when trying to vote on a closed poll."""
 
     pass
-

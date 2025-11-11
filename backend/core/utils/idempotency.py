@@ -1,6 +1,7 @@
 """
 Idempotency utilities for ensuring vote operations are idempotent.
 """
+
 import hashlib
 import json
 from django.core.cache import cache
@@ -53,4 +54,3 @@ def store_idempotency_result(idempotency_key, result, ttl=3600):
     """
     cache_key = f"idempotency:{idempotency_key}"
     cache.set(cache_key, result, ttl)
-

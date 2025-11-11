@@ -1,6 +1,7 @@
 """
 Analytics models for Provote.
 """
+
 from django.db import models
 from django.contrib.auth.models import User
 from apps.polls.models import Poll
@@ -9,7 +10,9 @@ from apps.polls.models import Poll
 class PollAnalytics(models.Model):
     """Analytics data for polls."""
 
-    poll = models.OneToOneField(Poll, on_delete=models.CASCADE, related_name="analytics")
+    poll = models.OneToOneField(
+        Poll, on_delete=models.CASCADE, related_name="analytics"
+    )
     total_votes = models.IntegerField(default=0)
     unique_voters = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
@@ -19,4 +22,3 @@ class PollAnalytics(models.Model):
 
     def __str__(self):
         return f"Analytics for {self.poll.title}"
-

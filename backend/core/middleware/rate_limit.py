@@ -1,6 +1,7 @@
 """
 Rate limiting middleware for Provote.
 """
+
 from django.core.cache import cache
 from django.http import JsonResponse
 
@@ -46,4 +47,3 @@ class RateLimitMiddleware:
         else:
             ip = request.META.get("REMOTE_ADDR")
         return ip
-

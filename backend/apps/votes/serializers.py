@@ -1,6 +1,7 @@
 """
 Serializers for Votes app.
 """
+
 from rest_framework import serializers
 from .models import Vote
 
@@ -23,4 +24,3 @@ class VoteCreateSerializer(serializers.Serializer):
     poll_id = serializers.IntegerField()
     choice_id = serializers.IntegerField()
     idempotency_key = serializers.CharField(required=False, allow_blank=True)
-

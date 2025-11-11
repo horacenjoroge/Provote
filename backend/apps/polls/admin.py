@@ -1,6 +1,7 @@
 """
 Admin configuration for Polls app.
 """
+
 from django.contrib import admin
 from .models import Poll, Choice
 
@@ -22,4 +23,3 @@ class ChoiceAdmin(admin.ModelAdmin):
     list_display = ["text", "poll", "vote_count", "created_at"]
     list_filter = ["poll", "created_at"]
     search_fields = ["text", "poll__title"]
-

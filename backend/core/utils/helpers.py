@@ -1,6 +1,7 @@
 """
 Helper utilities for Provote.
 """
+
 from datetime import datetime, timezone
 
 
@@ -27,4 +28,3 @@ def format_datetime(dt):
     if dt is None:
         return None
     return dt.isoformat()
-

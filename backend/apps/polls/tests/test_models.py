@@ -1,6 +1,7 @@
 """
 Tests for Poll models.
 """
+
 import pytest
 from django.utils import timezone
 from datetime import timedelta
@@ -50,4 +51,3 @@ class TestChoiceModel:
     def test_choice_vote_count(self, choices):
         """Test choice vote_count property."""
         assert choices[0].vote_count == 0
-

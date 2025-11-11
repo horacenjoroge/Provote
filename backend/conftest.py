@@ -2,6 +2,7 @@
 Pytest configuration and fixtures for all tests.
 This file makes fixtures available to all tests in backend/.
 """
+
 import pytest
 from django.contrib.auth.models import User
 from apps.polls.models import Poll, Choice
@@ -15,15 +16,15 @@ def django_db_setup(django_db_setup, django_db_blocker):
     """Override django_db_setup to ensure all migrations are applied."""
     # Let pytest-django do its initial setup first
     # This creates the test database and runs migrations
-    
+
     # Then ensure all migrations are applied (in case some were missed)
     with django_db_blocker.unblock():
         from django.core.management import call_command
         from django.apps import apps
-        
+
         # Ensure all apps are loaded
         apps.check_apps_ready()
-        
+
         # Run migrations explicitly to ensure all apps' migrations are applied
         # This will apply any migrations that weren't applied during initial setup
         call_command("migrate", verbosity=1, interactive=False)
@@ -71,4 +72,3 @@ def authenticated_client(api_client, user):
     """Create an authenticated API client."""
     api_client.force_authenticate(user=user)
     return api_client
-

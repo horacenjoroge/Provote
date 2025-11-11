@@ -1,6 +1,7 @@
 """
 Audit logging middleware for Provote.
 """
+
 import logging
 
 logger = logging.getLogger("provote.audit")
@@ -38,4 +39,3 @@ class AuditLogMiddleware:
         else:
             ip = request.META.get("REMOTE_ADDR", "unknown")
         return ip
-
