@@ -54,6 +54,18 @@ TEST_NON_SERIALIZED_APPS = [
     "apps.analytics",
 ]
 
+# Override cache configuration for tests to use dummy backend
+# This avoids Redis connection issues during tests
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    }
+}
+
+# Override Celery configuration for tests (synchronous execution)
+CELERY_BROKER_URL = "memory://"
+CELERY_RESULT_BACKEND = "cache+memory://"
+
 # Static directory will be created by the workflow
 # This is handled in .github/workflows/test.yml
 
