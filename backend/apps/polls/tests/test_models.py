@@ -5,7 +5,6 @@ Tests for Poll models.
 from datetime import timedelta
 
 import pytest
-from apps.polls.models import Choice, Poll
 from django.utils import timezone
 
 

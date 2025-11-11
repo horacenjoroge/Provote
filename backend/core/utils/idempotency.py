@@ -3,9 +3,7 @@ Idempotency utilities for ensuring vote operations are idempotent.
 """
 
 import hashlib
-import json
 
-from django.conf import settings
 from django.core.cache import cache
 
 

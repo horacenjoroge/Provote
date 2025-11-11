@@ -16,7 +16,6 @@ from core.utils.idempotency import (
     store_idempotency_result,
 )
 from django.contrib.auth.models import User
-from django.core.cache import cache
 from django.db import transaction
 
 
@@ -28,7 +27,8 @@ def create_vote(user: User, poll_id: int, choice_id: int, idempotency_key: str =
         user: The user making the vote
         poll_id: The ID of the poll
         choice_id: The ID of the choice
-        idempotency_key: Optional idempotency key. If not provided, one will be generated.
+        idempotency_key: Optional idempotency key.
+            If not provided, one will be generated.
 
     Returns:
         Vote: The created or existing vote

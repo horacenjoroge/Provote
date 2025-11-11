@@ -3,12 +3,10 @@ Tests for Vote services.
 """
 
 import pytest
-from apps.votes.models import Vote
 from apps.votes.services import create_vote
 from core.exceptions import (
     DuplicateVoteError,
     InvalidVoteError,
-    PollClosedError,
     PollNotFoundError,
 )
 

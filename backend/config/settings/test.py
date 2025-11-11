@@ -2,7 +2,6 @@
 Test settings for Provote project.
 """
 
-import os
 from pathlib import Path
 
 from .base import *  # noqa: F403, F401
