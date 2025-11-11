@@ -4,6 +4,7 @@ Test settings for Provote project.
 from .base import *  # noqa: F403, F401
 
 # Use in-memory database for faster tests
+# pytest-django will automatically create tables and run migrations
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -11,16 +12,9 @@ DATABASES = {
     }
 }
 
-# Disable migrations during tests for speed
-class DisableMigrations:  # noqa: N801
-    def __contains__(self, item):
-        return True
-
-    def __getitem__(self, item):
-        return None
-
-
-MIGRATION_MODULES = DisableMigrations()
+# Note: Migrations are enabled for CI/CD
+# For faster unit tests, use pytest with --nomigrations flag
+# MIGRATION_MODULES = DisableMigrations()
 
 # Password hashing for tests (faster)
 PASSWORD_HASHERS = [
@@ -38,4 +32,7 @@ CELERY_TASK_EAGER_PROPAGATES = True
 
 # Disable logging during tests
 LOGGING_CONFIG = None
+
+# Static directory will be created by the workflow
+# This is handled in .github/workflows/test.yml
 

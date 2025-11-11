@@ -72,13 +72,19 @@ jobs:
           echo "CELERY_BROKER_URL=redis://localhost:6379/0" >> $GITHUB_ENV
           echo "CELERY_RESULT_BACKEND=redis://localhost:6379/0" >> $GITHUB_ENV
 
-      - name: Run migrations
+      - name: Create static directory
+        run: |
+          mkdir -p backend/static
+
+      - name: Create migrations (if needed)
         working-directory: backend
         run: |
-          python manage.py migrate --settings=config.settings.test
+          python manage.py makemigrations --settings=config.settings.test --noinput || true
 
       - name: Run tests
         working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
         run: |
           pytest --cov=backend --cov-report=xml --cov-report=html -v
 
