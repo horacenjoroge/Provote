@@ -44,6 +44,11 @@ CELERY_TASK_EAGER_PROPAGATES = True
 # Disable logging during tests
 LOGGING_CONFIG = None
 
+# Disable database serialization for tests
+# This prevents pytest-django from trying to serialize the database
+# which can fail if migrations haven't created all tables yet
+SERIALIZE = False
+
 # Static directory will be created by the workflow
 # This is handled in .github/workflows/test.yml
 
