@@ -4,4 +4,3 @@ This imports fixtures from backend/conftest.py.
 """
 # Import all fixtures from backend/conftest.py
 from backend.conftest import *  # noqa: F403, F401
-
