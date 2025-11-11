@@ -11,12 +11,12 @@ pytest_plugins = ["pytest_django"]
 
 
 @pytest.fixture(scope="session")
-def django_db_setup(django_db_setup, django_db_blocker, django_db_createdb):
+def django_db_setup(django_db_setup, django_db_blocker):
     """Override django_db_setup to ensure all migrations are applied."""
     # Let pytest-django do its initial setup first
-    # This creates the test database
+    # This creates the test database and runs migrations
     
-    # Then ensure all migrations are applied
+    # Then ensure all migrations are applied (in case some were missed)
     with django_db_blocker.unblock():
         from django.core.management import call_command
         from django.apps import apps
@@ -25,6 +25,7 @@ def django_db_setup(django_db_setup, django_db_blocker, django_db_createdb):
         apps.check_apps_ready()
         
         # Run migrations explicitly to ensure all apps' migrations are applied
+        # This will apply any migrations that weren't applied during initial setup
         call_command("migrate", verbosity=1, interactive=False)
 
 
