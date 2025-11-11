@@ -14,9 +14,16 @@ pytest_plugins = ["pytest_django"]
 def django_db_setup_ensure_migrations(django_db_setup, django_db_blocker):
     """Ensure all migrations are applied, including custom apps."""
     with django_db_blocker.unblock():
+        # Ensure Django is fully initialized
+        from django.apps import apps
         from django.core.management import call_command
+        
+        # Force app registry to be ready
+        apps.check_apps_ready()
+        
         # Run migrations explicitly to ensure all apps' migrations are applied
-        call_command("migrate", verbosity=1, interactive=False)
+        # Use --run-syncdb to create tables even if migrations aren't found
+        call_command("migrate", verbosity=1, interactive=False, run_syncdb=True)
 
 
 @pytest.fixture
