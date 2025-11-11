@@ -47,7 +47,14 @@ LOGGING_CONFIG = None
 # Disable database serialization for tests
 # This prevents Django from trying to serialize the database during test setup
 # which fails when migrations haven't created all tables yet
+# List all apps to prevent serialization
 TEST_NON_SERIALIZED_APPS = [
+    "admin",
+    "auth",
+    "contenttypes",
+    "sessions",
+    "django_celery_beat",
+    "django_celery_results",
     "apps.polls",
     "apps.votes",
     "apps.users",
