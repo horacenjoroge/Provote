@@ -102,6 +102,7 @@ jobs:
       - name: Check code style with Black
         working-directory: .
         run: |
+          python -m pip install --upgrade black==23.12.1
           echo "Black version: $(black --version)"
           echo "Python version: $(python --version)"
           echo "Working directory: $(pwd)"
