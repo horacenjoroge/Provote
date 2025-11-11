@@ -19,14 +19,20 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies
 COPY requirements/ /app/requirements/
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements/production.txt
+    pip install --no-cache-dir -r requirements/development.txt
 
 # Copy project
 COPY backend/ /app/backend/
 COPY docker/ /app/docker/
 
+# Set PYTHONPATH to include backend directory
+ENV PYTHONPATH=/app/backend:$PYTHONPATH
+
+# Change to backend directory for Django commands
+WORKDIR /app/backend
+
 # Collect static files
-RUN cd /app/backend && python manage.py collectstatic --noinput --settings=config.settings.production || true
+RUN python manage.py collectstatic --noinput --settings=config.settings.development || true
 
 # Create directories for static and media files
 RUN mkdir -p /app/backend/staticfiles /app/backend/media
