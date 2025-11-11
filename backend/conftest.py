@@ -10,20 +10,22 @@ from apps.polls.models import Poll, Choice
 pytest_plugins = ["pytest_django"]
 
 
-@pytest.fixture(scope="session", autouse=True)
-def django_db_setup_ensure_migrations(django_db_setup, django_db_blocker):
-    """Ensure all migrations are applied, including custom apps."""
+@pytest.fixture(scope="session")
+def django_db_setup(django_db_setup, django_db_blocker, django_db_createdb):
+    """Override django_db_setup to ensure all migrations are applied."""
+    # Let pytest-django do its initial setup first
+    # This creates the test database
+    
+    # Then ensure all migrations are applied
     with django_db_blocker.unblock():
-        # Ensure Django is fully initialized
-        from django.apps import apps
         from django.core.management import call_command
+        from django.apps import apps
         
-        # Force app registry to be ready
+        # Ensure all apps are loaded
         apps.check_apps_ready()
         
         # Run migrations explicitly to ensure all apps' migrations are applied
-        # Use --run-syncdb to create tables even if migrations aren't found
-        call_command("migrate", verbosity=1, interactive=False, run_syncdb=True)
+        call_command("migrate", verbosity=1, interactive=False)
 
 
 @pytest.fixture
