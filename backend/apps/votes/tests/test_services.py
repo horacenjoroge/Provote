@@ -4,11 +4,7 @@ Tests for Vote services.
 
 import pytest
 from apps.votes.services import create_vote
-from core.exceptions import (
-    DuplicateVoteError,
-    InvalidVoteError,
-    PollNotFoundError,
-)
+from core.exceptions import DuplicateVoteError, InvalidVoteError, PollNotFoundError
 
 
 @pytest.mark.unit
