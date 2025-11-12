@@ -41,6 +41,7 @@ class VoteViewSet(viewsets.ReadOnlyModelViewSet):
                 poll_id=serializer.validated_data["poll_id"],
                 choice_id=serializer.validated_data["choice_id"],
                 idempotency_key=serializer.validated_data.get("idempotency_key"),
+                request=request,  # Pass request for fingerprint/IP extraction
             )
             return Response(
                 VoteSerializer(vote).data,

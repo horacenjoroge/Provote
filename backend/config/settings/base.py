@@ -192,6 +192,18 @@ SECURE_SSL_REDIRECT = env("SECURE_SSL_REDIRECT", default=False)
 SESSION_COOKIE_SECURE = env("SESSION_COOKIE_SECURE", default=False)
 CSRF_COOKIE_SECURE = env("CSRF_COOKIE_SECURE", default=False)
 
+# Fingerprint Validation Settings
+FINGERPRINT_CHECK_ENABLED = env.bool("FINGERPRINT_CHECK_ENABLED", default=True)
+FINGERPRINT_CACHE_TTL = env.int("FINGERPRINT_CACHE_TTL", default=3600)  # 1 hour
+FINGERPRINT_TIME_WINDOW_HOURS = env.int("FINGERPRINT_TIME_WINDOW_HOURS", default=24)
+FINGERPRINT_ANALYSIS_WINDOW_HOURS = env.int("FINGERPRINT_ANALYSIS_WINDOW_HOURS", default=168)  # 7 days for async analysis
+FINGERPRINT_SUSPICIOUS_THRESHOLDS = {
+    "different_users": env.int("FP_THRESHOLD_DIFF_USERS", default=2),  # Same fingerprint, different users
+    "rapid_votes_minutes": env.int("FP_THRESHOLD_RAPID_MINUTES", default=5),  # Multiple votes within minutes
+    "rapid_votes_count": env.int("FP_THRESHOLD_RAPID_COUNT", default=3),  # Number of votes in time window
+    "different_ips": env.int("FP_THRESHOLD_DIFF_IPS", default=2),  # Same fingerprint, different IPs
+}
+
 # Logging
 LOGGING = {
     "version": 1,
