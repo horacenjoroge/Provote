@@ -19,6 +19,44 @@ logger = logging.getLogger(__name__)
 RESULTS_CACHE_TTL = 3600
 
 
+def can_view_results(poll: Poll, user) -> bool:
+    """
+    Check if user can view poll results based on visibility rules.
+    
+    Rules:
+    - If poll is private (settings.is_private=True), only owner can view
+    - If show_results_during_voting=False, results only shown after poll closes
+    - If show_results_during_voting=True, results shown anytime
+    - Public polls (default) can be viewed by anyone
+    
+    Args:
+        poll: Poll instance
+        user: User instance (can be None for anonymous)
+        
+    Returns:
+        bool: True if user can view results
+    """
+    # Check if results are private
+    is_private = poll.settings.get("is_private", False)
+    if is_private:
+        # Only owner can view private poll results
+        if not user or not user.is_authenticated:
+            return False
+        if poll.created_by != user:
+            return False
+    
+    # Check when results can be shown
+    show_during_voting = poll.settings.get("show_results_during_voting", False)
+    
+    if not show_during_voting:
+        # Results only shown after poll closes
+        if poll.is_open:
+            return False  # Poll is still open, don't show results
+    
+    # All checks passed
+    return True
+
+
 def get_results_cache_key(poll_id: int) -> str:
     """Generate cache key for poll results."""
     return f"poll_results:{poll_id}"
@@ -136,6 +174,9 @@ def calculate_poll_results(poll_id: int, use_cache: bool = True) -> Dict:
     # Determine if there's a tie
     is_tie = len(winners) > 1 and max_votes > 0
 
+    # Calculate aggregate statistics
+    stats = calculate_aggregate_statistics(poll_id, total_votes, unique_voters, option_results)
+    
     # Build results
     results = {
         "poll_id": poll.id,
@@ -150,6 +191,7 @@ def calculate_poll_results(poll_id: int, use_cache: bool = True) -> Dict:
         ],
         "is_tie": is_tie,
         "calculated_at": timezone.now().isoformat(),
+        "statistics": stats,
     }
 
     # Cache results
@@ -300,4 +342,132 @@ def get_cached_results(poll_id: int) -> Optional[Dict]:
     """
     cache_key = get_results_cache_key(poll_id)
     return cache.get(cache_key)
+
+
+def calculate_aggregate_statistics(
+    poll_id: int,
+    total_votes: int,
+    unique_voters: int,
+    option_results: List[Dict],
+) -> Dict:
+    """
+    Calculate aggregate statistics for poll results.
+    
+    Args:
+        poll_id: Poll ID
+        total_votes: Total number of votes
+        unique_voters: Number of unique voters
+        option_results: List of option result dictionaries
+        
+    Returns:
+        dict: Aggregate statistics
+    """
+    if not option_results:
+        return {
+            "average_votes_per_option": 0.0,
+            "median_votes_per_option": 0.0,
+            "max_votes": 0,
+            "min_votes": 0,
+            "vote_distribution": {},
+            "options_count": 0,
+        }
+    
+    votes_list = [opt["votes"] for opt in option_results]
+    votes_list_sorted = sorted(votes_list)
+    
+    # Calculate statistics
+    average_votes = sum(votes_list) / len(votes_list) if votes_list else 0.0
+    
+    # Median
+    n = len(votes_list_sorted)
+    if n % 2 == 0:
+        median_votes = (votes_list_sorted[n // 2 - 1] + votes_list_sorted[n // 2]) / 2
+    else:
+        median_votes = votes_list_sorted[n // 2]
+    
+    max_votes = max(votes_list) if votes_list else 0
+    min_votes = min(votes_list) if votes_list else 0
+    
+    # Vote distribution (how many options have each vote count)
+    vote_distribution = {}
+    for votes in votes_list:
+        vote_distribution[votes] = vote_distribution.get(votes, 0) + 1
+    
+    return {
+        "average_votes_per_option": round(average_votes, 2),
+        "median_votes_per_option": round(median_votes, 2),
+        "max_votes": max_votes,
+        "min_votes": min_votes,
+        "vote_distribution": vote_distribution,
+        "options_count": len(option_results),
+    }
+
+
+def export_results_to_csv(poll_id: int) -> str:
+    """
+    Export poll results to CSV format.
+    
+    Args:
+        poll_id: Poll ID
+        
+    Returns:
+        str: CSV content as string
+    """
+    import csv
+    from io import StringIO
+    
+    try:
+        poll = Poll.objects.get(id=poll_id)
+    except Poll.DoesNotExist:
+        raise ValueError(f"Poll {poll_id} not found")
+    
+    results = calculate_poll_results(poll_id, use_cache=True)
+    
+    output = StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow(["Poll Results"])
+    writer.writerow([f"Poll: {results['poll_title']}"])
+    writer.writerow([f"Total Votes: {results['total_votes']}"])
+    writer.writerow([f"Unique Voters: {results['unique_voters']}"])
+    writer.writerow([f"Participation Rate: {results['participation_rate']}%"])
+    writer.writerow([f"Calculated At: {results['calculated_at']}"])
+    writer.writerow([])  # Empty row
+    
+    # Options header
+    writer.writerow(["Option ID", "Option Text", "Votes", "Percentage", "Is Winner"])
+    
+    # Options data
+    for option in results["options"]:
+        writer.writerow([
+            option["option_id"],
+            option["option_text"],
+            option["votes"],
+            f"{option['percentage']}%",
+            "Yes" if option["is_winner"] else "No",
+        ])
+    
+    writer.writerow([])  # Empty row
+    
+    # Winners
+    if results["winners"]:
+        writer.writerow(["Winners"])
+        for winner in results["winners"]:
+            writer.writerow([winner["option_text"], f"{winner['votes']} votes"])
+    
+    return output.getvalue()
+
+
+def export_results_to_json(poll_id: int) -> Dict:
+    """
+    Export poll results to JSON format.
+    
+    Args:
+        poll_id: Poll ID
+        
+    Returns:
+        dict: Results as dictionary (can be serialized to JSON)
+    """
+    return calculate_poll_results(poll_id, use_cache=True)
 

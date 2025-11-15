@@ -11,7 +11,12 @@ from rest_framework.response import Response
 
 from .models import Poll, PollOption
 from .permissions import CanModifyPoll, IsPollOwnerOrReadOnly
-from .services import calculate_poll_results
+from .services import (
+    calculate_poll_results,
+    can_view_results,
+    export_results_to_csv,
+    export_results_to_json,
+)
 from .serializers import (
     BulkPollOptionCreateSerializer,
     PollCreateSerializer,
@@ -239,16 +244,154 @@ class PollViewSet(viewsets.ModelViewSet):
         
         GET /api/v1/polls/{id}/results/
         
+        Visibility Rules:
+        - Private polls: Only owner can view results
+        - Public polls: Anyone can view (if allowed by timing)
+        - show_results_during_voting=False: Results only shown after poll closes
+        - show_results_during_voting=True: Results shown anytime
+        
         Returns:
-        - 200 OK: Poll results with vote counts, percentages, winners
+        - 200 OK: Poll results with vote counts, percentages, winners, statistics
+        - 403 Forbidden: User not authorized to view results
         - 404 Not Found: Poll not found
         """
         poll = self.get_object()
+        
+        # Check visibility rules
+        if not can_view_results(poll, request.user):
+            return Response(
+                {
+                    "error": "You are not authorized to view results for this poll",
+                    "reason": "Results are private or poll is still open",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
         
         # Use results calculation service
         try:
             results = calculate_poll_results(poll.id, use_cache=True)
             return Response(results, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    @action(detail=True, methods=["get"], url_path="results/live")
+    def results_live(self, request, pk=None):
+        """
+        Get live poll results (for polling/SSE, not WebSocket).
+        
+        GET /api/v1/polls/{id}/results/live/
+        
+        This endpoint is designed for client-side polling to get real-time updates.
+        For true WebSocket support, you would need Django Channels.
+        
+        Query Parameters:
+        - last_update: ISO timestamp of last known update (optional)
+        
+        Returns:
+        - 200 OK: Poll results with has_updates flag
+        - 403 Forbidden: User not authorized to view results
+        - 404 Not Found: Poll not found
+        """
+        poll = self.get_object()
+        
+        # Check visibility rules
+        if not can_view_results(poll, request.user):
+            return Response(
+                {
+                    "error": "You are not authorized to view results for this poll",
+                    "reason": "Results are private or poll is still open",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        
+        # Get last update timestamp from query params
+        last_update = request.query_params.get("last_update", None)
+        
+        try:
+            results = calculate_poll_results(poll.id, use_cache=False)  # Don't use cache for live updates
+            
+            # Check if results have changed since last_update
+            has_updates = True
+            if last_update:
+                try:
+                    from django.utils.dateparse import parse_datetime
+                    last_update_dt = parse_datetime(last_update)
+                    calculated_dt = parse_datetime(results["calculated_at"])
+                    if last_update_dt and calculated_dt:
+                        has_updates = calculated_dt > last_update_dt
+                except (ValueError, TypeError):
+                    has_updates = True
+            
+            response_data = {
+                **results,
+                "has_updates": has_updates,
+                "poll_status": {
+                    "is_open": poll.is_open,
+                    "is_active": poll.is_active,
+                    "ends_at": poll.ends_at.isoformat() if poll.ends_at else None,
+                },
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    @action(detail=True, methods=["get"], url_path="results/export")
+    def results_export(self, request, pk=None):
+        """
+        Export poll results in various formats.
+        
+        GET /api/v1/polls/{id}/results/export/?format=csv|json
+        
+        Query Parameters:
+        - format: Export format (csv or json, default: json)
+        
+        Returns:
+        - 200 OK: Exported results
+        - 403 Forbidden: User not authorized to view results
+        - 404 Not Found: Poll not found
+        - 400 Bad Request: Invalid format
+        """
+        poll = self.get_object()
+        
+        # Check visibility rules
+        if not can_view_results(poll, request.user):
+            return Response(
+                {
+                    "error": "You are not authorized to view results for this poll",
+                    "reason": "Results are private or poll is still open",
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        
+        # Get format from query params
+        export_format = request.query_params.get("format", "json").lower()
+        
+        try:
+            if export_format == "csv":
+                csv_content = export_results_to_csv(poll.id)
+                from django.http import HttpResponse
+                
+                response = HttpResponse(csv_content, content_type="text/csv")
+                response["Content-Disposition"] = f'attachment; filename="poll_{poll.id}_results.csv"'
+                return response
+                
+            elif export_format == "json":
+                json_data = export_results_to_json(poll.id)
+                return Response(json_data, status=status.HTTP_200_OK)
+                
+            else:
+                return Response(
+                    {"error": f"Invalid format '{export_format}'. Supported formats: csv, json"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+                
         except ValueError as e:
             return Response(
                 {"error": str(e)},
