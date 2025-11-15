@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from .models import Poll, PollOption
 from .permissions import CanModifyPoll, IsPollOwnerOrReadOnly
+from .services import calculate_poll_results
 from .serializers import (
     BulkPollOptionCreateSerializer,
     PollCreateSerializer,
@@ -233,27 +234,26 @@ class PollViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def results(self, request, pk=None):
-        """Get poll results."""
+        """
+        Get poll results with comprehensive calculations.
+        
+        GET /api/v1/polls/{id}/results/
+        
+        Returns:
+        - 200 OK: Poll results with vote counts, percentages, winners
+        - 404 Not Found: Poll not found
+        """
         poll = self.get_object()
-        options = poll.options.all()
-        results = [
-            {
-                "option_id": option.id,
-                "option_text": option.text,
-                "votes": option.vote_count,
-                "cached_votes": option.cached_vote_count,
-            }
-            for option in options
-        ]
-        return Response(
-            {
-                "poll_id": poll.id,
-                "poll_title": poll.title,
-                "total_votes": poll.cached_total_votes,
-                "unique_voters": poll.cached_unique_voters,
-                "results": results,
-            }
-        )
+        
+        # Use results calculation service
+        try:
+            results = calculate_poll_results(poll.id, use_cache=True)
+            return Response(results, status=status.HTTP_200_OK)
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
     @action(detail=False, methods=["get"], url_path="templates")
     def list_templates(self, request):

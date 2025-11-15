@@ -322,6 +322,14 @@ def cast_vote(
             except Exception:
                 pass
 
+        # Invalidate results cache
+        try:
+            from apps.polls.services import invalidate_results_cache
+
+            invalidate_results_cache(poll.id)
+        except Exception as e:
+            logger.error(f"Error invalidating results cache: {e}")
+
         # Step 13: Audit logging
         VoteAttempt.objects.create(
             user=user,
