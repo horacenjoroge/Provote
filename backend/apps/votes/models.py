@@ -21,6 +21,20 @@ class Vote(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True, db_index=True, help_text="IP address of voter")
     user_agent = models.TextField(blank=True, help_text="User agent string")
     fingerprint = models.CharField(max_length=128, blank=True, db_index=True, help_text="Browser/device fingerprint")
+    # Fraud detection
+    is_valid = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="Whether this vote is valid (False if fraud detected)",
+    )
+    fraud_reasons = models.TextField(
+        blank=True,
+        help_text="Comma-separated list of fraud detection reasons (if is_valid=False)",
+    )
+    risk_score = models.IntegerField(
+        default=0,
+        help_text="Risk score (0-100) from fraud detection",
+    )
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -34,6 +48,7 @@ class Vote(models.Model):
             models.Index(fields=["user", "poll"]),  # For user poll lookups
             models.Index(fields=["poll", "created_at"]),  # For poll vote history
             models.Index(fields=["fingerprint", "created_at"]),  # For fingerprint tracking
+            models.Index(fields=["is_valid", "poll"]),  # For filtering valid votes
         ]
 
     def __str__(self):

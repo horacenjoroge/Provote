@@ -144,3 +144,53 @@ class FingerprintBlock(models.Model):
         if user:
             self.unblocked_by = user
         self.save()
+
+
+class FraudAlert(models.Model):
+    """
+    Fraud alerts for suspicious votes.
+    Logs fraud detection events for investigation and analysis.
+    """
+
+    vote = models.ForeignKey(
+        "votes.Vote",
+        on_delete=models.CASCADE,
+        related_name="fraud_alerts",
+        help_text="Vote that triggered the fraud alert",
+    )
+    poll = models.ForeignKey(
+        Poll,
+        on_delete=models.CASCADE,
+        related_name="fraud_alerts",
+        help_text="Poll where fraud was detected",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fraud_alerts",
+        help_text="User who made the suspicious vote",
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True, blank=True, help_text="IP address of suspicious vote"
+    )
+    reasons = models.TextField(help_text="Comma-separated list of fraud detection reasons")
+    risk_score = models.IntegerField(
+        help_text="Risk score (0-100) indicating severity of fraud"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, help_text="When fraud was detected")
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["poll", "created_at"]),
+            models.Index(fields=["user", "created_at"]),
+            models.Index(fields=["ip_address", "created_at"]),
+            models.Index(fields=["risk_score", "created_at"]),
+        ]
+        verbose_name = "Fraud Alert"
+        verbose_name_plural = "Fraud Alerts"
+
+    def __str__(self):
+        return f"Fraud alert for vote {self.vote.id} (risk: {self.risk_score})"

@@ -20,6 +20,7 @@ from core.utils.fingerprint_validation import (
     check_fingerprint_suspicious,
     update_fingerprint_cache,
 )
+from core.utils.fraud_detection import detect_fraud, log_fraud_alert
 from core.utils.idempotency import (
     check_duplicate_vote_by_idempotency,
     check_idempotency,
@@ -233,7 +234,18 @@ def cast_vote(
                 logger.error(f"Error in fingerprint validation: {e}")
                 # Don't block vote if validation fails, but log error
 
-        # Step 7: Create vote atomically
+        # Step 7: Fraud detection
+        fraud_result = detect_fraud(
+            poll_id=poll_id,
+            option_id=option.id,
+            user_id=user.id if user else None,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            fingerprint=fingerprint,
+            request=request,
+        )
+
+        # Step 8: Create vote atomically
         vote = Vote.objects.create(
             user=user,
             option=option,
@@ -243,26 +255,44 @@ def cast_vote(
             ip_address=ip_address,
             user_agent=user_agent,
             fingerprint=fingerprint,
+            is_valid=not fraud_result["should_mark_invalid"],
+            fraud_reasons=", ".join(fraud_result["reasons"]) if fraud_result["reasons"] else "",
+            risk_score=fraud_result["risk_score"],
         )
 
-        # Step 8: Update denormalized vote counts atomically
-        # Update option cached vote count
-        PollOption.objects.filter(id=option.id).update(
-            cached_vote_count=F("cached_vote_count") + 1
-        )
+        # Log fraud alert if fraud detected
+        if fraud_result["is_fraud"] or fraud_result["should_mark_invalid"]:
+            try:
+                log_fraud_alert(
+                    vote_id=vote.id,
+                    reasons=fraud_result["reasons"],
+                    risk_score=fraud_result["risk_score"],
+                    poll_id=poll_id,
+                    user_id=user.id if user else None,
+                    ip_address=ip_address,
+                )
+            except Exception as e:
+                logger.error(f"Error logging fraud alert: {e}")
 
-        # Update poll cached totals
-        Poll.objects.filter(id=poll.id).update(
-            cached_total_votes=F("cached_total_votes") + 1
-        )
+        # Step 9: Update denormalized vote counts atomically (only for valid votes)
+        if vote.is_valid:
+            # Update option cached vote count
+            PollOption.objects.filter(id=option.id).update(
+                cached_vote_count=F("cached_vote_count") + 1
+            )
 
-        # Update unique voters count (only if this is first vote from this user)
-        # We already checked for existing vote, so this is a new voter
-        Poll.objects.filter(id=poll.id).update(
-            cached_unique_voters=F("cached_unique_voters") + 1
-        )
+            # Update poll cached totals
+            Poll.objects.filter(id=poll.id).update(
+                cached_total_votes=F("cached_total_votes") + 1
+            )
 
-        # Step 9: Update fingerprint cache
+            # Update unique voters count (only if this is first vote from this user)
+            # We already checked for existing vote, so this is a new voter
+            Poll.objects.filter(id=poll.id).update(
+                cached_unique_voters=F("cached_unique_voters") + 1
+            )
+
+        # Step 10: Update fingerprint cache
         if fingerprint:
             try:
                 update_fingerprint_cache(
@@ -274,13 +304,13 @@ def cast_vote(
             except Exception as e:
                 logger.error(f"Error updating fingerprint cache: {e}")
 
-        # Step 10: Store idempotency result
+        # Step 11: Store idempotency result
         store_idempotency_result(
             idempotency_key,
             {"vote_id": vote.id, "status": "created"},
         )
 
-        # Step 11: Invalidate cache (if any poll/option caches exist)
+        # Step 12: Invalidate cache (if any poll/option caches exist)
         cache_keys_to_invalidate = [
             f"poll:{poll.id}",
             f"poll:{poll.id}:results",
@@ -292,7 +322,7 @@ def cast_vote(
             except Exception:
                 pass
 
-        # Step 12: Audit logging
+        # Step 13: Audit logging
         VoteAttempt.objects.create(
             user=user,
             poll=poll,
