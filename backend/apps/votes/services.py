@@ -330,6 +330,14 @@ def cast_vote(
         except Exception as e:
             logger.error(f"Error invalidating results cache: {e}")
 
+        # Broadcast results update via WebSocket
+        try:
+            from apps.polls.services import broadcast_poll_results_update
+
+            broadcast_poll_results_update(poll.id)
+        except Exception as e:
+            logger.error(f"Error broadcasting results update: {e}")
+
         # Step 13: Audit logging
         VoteAttempt.objects.create(
             user=user,

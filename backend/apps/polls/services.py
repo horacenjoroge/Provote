@@ -471,3 +471,48 @@ def export_results_to_json(poll_id: int) -> Dict:
     """
     return calculate_poll_results(poll_id, use_cache=True)
 
+
+def broadcast_poll_results_update(poll_id: int):
+    """
+    Broadcast poll results update to all WebSocket subscribers.
+    
+    This function is called when a vote is cast to notify all connected
+    clients about the updated results.
+    
+    Args:
+        poll_id: Poll ID
+    """
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+
+        channel_layer = get_channel_layer()
+        if not channel_layer:
+            logger.warning("Channel layer not configured, skipping broadcast")
+            return
+
+        # Get updated results
+        results = calculate_poll_results(poll_id, use_cache=False)
+
+        # Get group name
+        group_name = get_poll_group_name(poll_id)
+
+        # Broadcast to all subscribers
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "poll_results_update",
+                "poll_id": poll_id,
+                "results": results,
+            },
+        )
+
+        logger.debug(f"Broadcasted results update for poll {poll_id} to group {group_name}")
+    except Exception as e:
+        logger.error(f"Error broadcasting poll results update: {e}")
+
+
+def get_poll_group_name(poll_id: int) -> str:
+    """Generate channel group name for a poll."""
+    return f"poll_{poll_id}_results"
+
