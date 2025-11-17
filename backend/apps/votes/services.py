@@ -330,13 +330,13 @@ def cast_vote(
         except Exception as e:
             logger.error(f"Error invalidating results cache: {e}")
 
-        # Broadcast results update via WebSocket
+        # Publish vote event to Redis Pub/Sub for multi-server scaling
         try:
-            from apps.polls.services import broadcast_poll_results_update
+            from core.utils.redis_pubsub import publish_vote_event
 
-            broadcast_poll_results_update(poll.id)
+            publish_vote_event(poll.id, vote.id)
         except Exception as e:
-            logger.error(f"Error broadcasting results update: {e}")
+            logger.error(f"Error publishing vote event to Redis: {e}")
 
         # Step 13: Audit logging
         VoteAttempt.objects.create(

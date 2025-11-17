@@ -549,3 +549,44 @@ class TestCastVoteEdgeCases:
         assert vote.voter_token is not None
         assert len(vote.voter_token) == 64  # SHA256 hex length
 
+
+@pytest.mark.django_db
+class TestCastVoteRedisPubSub:
+    """Test Redis Pub/Sub integration for vote events."""
+
+    def test_vote_publishes_to_redis(self, user, poll, choices):
+        """Test that casting a vote publishes an event to Redis."""
+        from unittest.mock import patch
+
+        with patch("apps.votes.services.publish_vote_event") as mock_publish:
+            vote, is_new = cast_vote(
+                user=user,
+                poll_id=poll.id,
+                choice_id=choices[0].id,
+                request=None,
+            )
+
+            # Verify vote was created
+            assert vote is not None
+            assert is_new is True
+
+            # Verify Redis publish was called
+            mock_publish.assert_called_once_with(poll.id, vote.id)
+
+    def test_vote_handles_redis_failure_gracefully(self, user, poll, choices):
+        """Test that vote casting handles Redis failures gracefully."""
+        from unittest.mock import patch
+
+        # Simulate Redis failure
+        with patch("apps.votes.services.publish_vote_event", side_effect=Exception("Redis error")):
+            # Vote should still succeed even if Redis fails
+            vote, is_new = cast_vote(
+                user=user,
+                poll_id=poll.id,
+                choice_id=choices[0].id,
+                request=None,
+            )
+
+            assert vote is not None
+            assert is_new is True
+
