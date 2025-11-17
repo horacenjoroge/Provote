@@ -9,6 +9,7 @@ from typing import Optional, Tuple
 from apps.polls.models import Choice, Poll, PollOption
 from apps.votes.models import Vote, VoteAttempt
 from core.exceptions import (
+    CaptchaVerificationError,
     DuplicateVoteError,
     FraudDetectedError,
     InvalidPollError,
@@ -148,6 +149,32 @@ def cast_vote(
         # Validate poll is open (combines all checks)
         if not poll.is_open:
             raise PollClosedError(f"Poll {poll_id} is closed")
+
+        # Step 3.5: CAPTCHA verification (if enabled)
+        captcha_token = getattr(request, "captcha_token", None) if request else None
+        if captcha_token is None and request and hasattr(request, "data"):
+            # Try to get from request data
+            captcha_token = request.data.get("captcha_token")
+        
+        try:
+            from core.utils.captcha import verify_captcha_for_vote
+            
+            is_valid, error_message = verify_captcha_for_vote(
+                token=captcha_token,
+                poll_settings=poll.settings,
+                user=user,
+                remote_ip=ip_address,
+            )
+            
+            if not is_valid:
+                raise CaptchaVerificationError(error_message or "CAPTCHA verification failed")
+        except CaptchaVerificationError:
+            raise
+        except Exception as e:
+            logger.error(f"Error during CAPTCHA verification: {e}")
+            # If CAPTCHA verification fails due to system error, allow vote
+            # (fail open to avoid blocking legitimate users)
+            # In production, you might want to be more strict
 
         # Step 4: Voter validation
         # Check if user has already voted on this poll (with lock)

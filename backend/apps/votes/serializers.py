@@ -65,6 +65,12 @@ class VoteCastSerializer(serializers.Serializer):
         max_length=64,
         help_text="Optional idempotency key for retry safety",
     )
+    captcha_token = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="reCAPTCHA v3 token (required if poll has enable_captcha enabled)",
+    )
 
     def validate_poll_id(self, value):
         """Validate that poll exists."""

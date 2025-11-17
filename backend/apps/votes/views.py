@@ -5,6 +5,7 @@ Views for Votes app with comprehensive API endpoints.
 import logging
 
 from core.exceptions import (
+    CaptchaVerificationError,
     DuplicateVoteError,
     FraudDetectedError,
     InvalidPollError,
@@ -82,9 +83,14 @@ class VoteViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
         poll_id = serializer.validated_data["poll_id"]
         choice_id = serializer.validated_data["choice_id"]
         idempotency_key = serializer.validated_data.get("idempotency_key")
+        captcha_token = serializer.validated_data.get("captcha_token")
 
         # Check if user is authenticated
         user = request.user if request.user.is_authenticated else None
+        
+        # Attach captcha_token to request for service layer
+        if captcha_token:
+            request.captcha_token = captcha_token
 
         # For anonymous users, we need to handle this differently
         # Since cast_vote requires a user, we'll need to create an anonymous user
@@ -161,6 +167,11 @@ class VoteViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
             return Response(
                 {"error": str(e), "error_code": "FraudDetectedError"},
                 status=status.HTTP_403_FORBIDDEN,
+            )
+        except CaptchaVerificationError as e:
+            return Response(
+                {"error": str(e), "error_code": "CaptchaVerificationError"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as e:
             logger.error(f"Unexpected error in cast_vote: {e}", exc_info=True)

@@ -221,6 +221,11 @@ FINGERPRINT_SUSPICIOUS_THRESHOLDS = {
     "different_ips": env.int("FP_THRESHOLD_DIFF_IPS", default=2),  # Same fingerprint, different IPs
 }
 
+# reCAPTCHA Settings
+RECAPTCHA_SECRET_KEY = env("RECAPTCHA_SECRET_KEY", default="")
+RECAPTCHA_SITE_KEY = env("RECAPTCHA_SITE_KEY", default="")
+RECAPTCHA_MIN_SCORE = env.float("RECAPTCHA_MIN_SCORE", default=0.5)  # Minimum score threshold (0.0 to 1.0)
+
 # Logging
 LOGGING = {
     "version": 1,

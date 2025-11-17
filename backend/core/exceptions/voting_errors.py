@@ -73,3 +73,10 @@ class FraudDetectedError(VotingError):
 
     default_status_code = 403
     default_message = "Suspicious activity detected. Vote blocked."
+
+
+class CaptchaVerificationError(VotingError):
+    """Raised when CAPTCHA verification fails."""
+
+    default_status_code = 400
+    default_message = "CAPTCHA verification failed"
