@@ -8,6 +8,7 @@ from core.exceptions import (
     CaptchaVerificationError,
     DuplicateVoteError,
     FraudDetectedError,
+    IPBlockedError,
     InvalidPollError,
     InvalidVoteError,
     PollClosedError,
@@ -172,6 +173,11 @@ class VoteViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
             return Response(
                 {"error": str(e), "error_code": "CaptchaVerificationError"},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+        except IPBlockedError as e:
+            return Response(
+                {"error": str(e), "error_code": "IPBlockedError"},
+                status=status.HTTP_403_FORBIDDEN,
             )
         except Exception as e:
             logger.error(f"Unexpected error in cast_vote: {e}", exc_info=True)

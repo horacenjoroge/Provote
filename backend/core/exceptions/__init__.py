@@ -2,6 +2,7 @@ from .voting_errors import (  # noqa: F401
     CaptchaVerificationError,
     DuplicateVoteError,
     FraudDetectedError,
+    IPBlockedError,
     InvalidPollError,
     InvalidVoteError,
     PollClosedError,
@@ -20,4 +21,5 @@ __all__ = [
     "InvalidPollError",
     "FraudDetectedError",
     "CaptchaVerificationError",
+    "IPBlockedError",
 ]

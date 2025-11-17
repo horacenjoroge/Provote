@@ -226,6 +226,11 @@ RECAPTCHA_SECRET_KEY = env("RECAPTCHA_SECRET_KEY", default="")
 RECAPTCHA_SITE_KEY = env("RECAPTCHA_SITE_KEY", default="")
 RECAPTCHA_MIN_SCORE = env.float("RECAPTCHA_MIN_SCORE", default=0.5)  # Minimum score threshold (0.0 to 1.0)
 
+# IP Reputation Settings
+IP_VIOLATION_THRESHOLD = env.int("IP_VIOLATION_THRESHOLD", default=5)  # Block after N violations
+IP_REPUTATION_THRESHOLD = env.int("IP_REPUTATION_THRESHOLD", default=30)  # Block if score below this
+IP_AUTO_UNBLOCK_HOURS = env.int("IP_AUTO_UNBLOCK_HOURS", default=24)  # Auto-unblock after N hours
+
 # Logging
 LOGGING = {
     "version": 1,

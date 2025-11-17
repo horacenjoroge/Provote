@@ -12,6 +12,7 @@ from core.exceptions import (
     CaptchaVerificationError,
     DuplicateVoteError,
     FraudDetectedError,
+    IPBlockedError,
     InvalidPollError,
     InvalidVoteError,
     PollClosedError,
@@ -116,6 +117,20 @@ def cast_vote(
     if request:
         ip_address = extract_ip_address(request)
         user_agent = request.META.get("HTTP_USER_AGENT", "")
+    
+    # Step 2.5: Check IP reputation and block status
+    if ip_address:
+        try:
+            from core.utils.ip_reputation import check_ip_reputation
+            
+            is_allowed, error_message = check_ip_reputation(ip_address)
+            if not is_allowed:
+                raise IPBlockedError(error_message or "Your IP address has been blocked")
+        except IPBlockedError:
+            raise
+        except Exception as e:
+            logger.error(f"Error checking IP reputation: {e}")
+            # Fail open - don't block legitimate users if reputation check fails
 
     # Generate voter token
     voter_token = generate_voter_token(
@@ -180,6 +195,18 @@ def cast_vote(
         # Check if user has already voted on this poll (with lock)
         existing_vote = Vote.objects.select_for_update().filter(user=user, poll=poll).first()
         if existing_vote:
+            # Record IP violation for duplicate vote attempt
+            if ip_address:
+                try:
+                    from core.utils.ip_reputation import record_ip_violation
+                    record_ip_violation(
+                        ip_address=ip_address,
+                        reason="Duplicate vote attempt",
+                        severity=1,
+                    )
+                except Exception as e:
+                    logger.error(f"Error recording IP violation: {e}")
+            
             # Store result for idempotency
             store_idempotency_result(
                 idempotency_key,
@@ -379,6 +406,14 @@ def cast_vote(
         )
 
         logger.info(f"Vote created successfully: vote_id={vote.id}, poll_id={poll_id}, user_id={user.id}")
+        
+        # Record successful IP activity
+        if ip_address:
+            try:
+                from core.utils.ip_reputation import record_ip_success
+                record_ip_success(ip_address)
+            except Exception as e:
+                logger.error(f"Error recording IP success: {e}")
 
     return vote, True  # New vote created
 

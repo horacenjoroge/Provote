@@ -80,3 +80,10 @@ class CaptchaVerificationError(VotingError):
 
     default_status_code = 400
     default_message = "CAPTCHA verification failed"
+
+
+class IPBlockedError(VotingError):
+    """Raised when IP address is blocked."""
+
+    default_status_code = 403
+    default_message = "Your IP address has been blocked"
