@@ -9,6 +9,9 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from core.mixins import RateLimitHeadersMixin
+from core.throttles import PollCreateRateThrottle, PollReadRateThrottle
+
 from .models import Poll, PollOption
 from .permissions import CanModifyPoll, IsPollOwnerOrReadOnly
 from .services import (
@@ -30,7 +33,7 @@ from .templates import get_template, list_templates
 logger = logging.getLogger(__name__)
 
 
-class PollViewSet(viewsets.ModelViewSet):
+class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
     """
     ViewSet for Poll model with comprehensive CRUD operations.
     
@@ -51,6 +54,14 @@ class PollViewSet(viewsets.ModelViewSet):
     search_fields = ["title", "description"]
     ordering_fields = ["created_at", "starts_at", "ends_at", "cached_total_votes"]
     ordering = ["-created_at"]
+    
+    def get_throttles(self):
+        """Return throttles based on action."""
+        if self.action == "create":
+            return [PollCreateRateThrottle()]
+        elif self.action in ["list", "retrieve"]:
+            return [PollReadRateThrottle()]
+        return []
 
     def get_serializer_class(self):
         """Return appropriate serializer class."""

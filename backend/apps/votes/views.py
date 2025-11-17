@@ -17,16 +17,18 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from core.mixins import RateLimitHeadersMixin
+from core.throttles import VoteCastRateThrottle
+
 from .models import Vote
 from .permissions import CanVotePermission
 from .serializers import VoteCastSerializer, VoteSerializer
 from .services import cast_vote
-from .throttles import VoteAnonRateThrottle, VoteUserRateThrottle
 
 logger = logging.getLogger(__name__)
 
 
-class VoteViewSet(viewsets.ModelViewSet):
+class VoteViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
     """
     ViewSet for Vote model with comprehensive API endpoints.
     
@@ -39,7 +41,12 @@ class VoteViewSet(viewsets.ModelViewSet):
     queryset = Vote.objects.all()
     serializer_class = VoteSerializer
     permission_classes = [CanVotePermission]
-    throttle_classes = [VoteAnonRateThrottle, VoteUserRateThrottle]
+    
+    def get_throttles(self):
+        """Return throttles based on action."""
+        if self.action == "cast":
+            return [VoteCastRateThrottle()]
+        return []
 
     def get_queryset(self):
         """Filter votes by current user if authenticated."""
