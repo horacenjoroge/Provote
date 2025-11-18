@@ -8,11 +8,41 @@ from rest_framework import serializers
 
 from core.utils.language import get_request_language, get_translated_field
 
-from .models import Poll, PollOption
+from .models import Poll, PollOption, Category, Tag
 
 # Validation constants
 MIN_OPTIONS = 2
 MAX_OPTIONS = 100
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    """Serializer for Category model."""
+
+    poll_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ["id", "name", "slug", "description", "poll_count", "created_at"]
+        read_only_fields = ["id", "slug", "poll_count", "created_at"]
+
+    def get_poll_count(self, obj):
+        """Get count of polls in this category."""
+        return obj.polls.count()
+
+
+class TagSerializer(serializers.ModelSerializer):
+    """Serializer for Tag model."""
+
+    poll_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Tag
+        fields = ["id", "name", "slug", "poll_count", "created_at"]
+        read_only_fields = ["id", "slug", "poll_count", "created_at"]
+
+    def get_poll_count(self, obj):
+        """Get count of polls with this tag."""
+        return obj.polls.count()
 
 
 class PollOptionSerializer(serializers.ModelSerializer):
@@ -63,6 +93,10 @@ class PollSerializer(serializers.ModelSerializer):
     options = PollOptionSerializer(many=True, read_only=True)
     created_by = serializers.StringRelatedField(read_only=True)
     created_by_id = serializers.IntegerField(source="created_by.id", read_only=True)
+    category = CategorySerializer(read_only=True)
+    category_id = serializers.IntegerField(source="category.id", read_only=True, allow_null=True)
+    tags = TagSerializer(many=True, read_only=True)
+    tag_ids = serializers.SerializerMethodField()
     is_open = serializers.ReadOnlyField()
     total_votes = serializers.IntegerField(source="cached_total_votes", read_only=True)
     unique_voters = serializers.IntegerField(source="cached_unique_voters", read_only=True)
@@ -75,6 +109,10 @@ class PollSerializer(serializers.ModelSerializer):
             "description",
             "created_by",
             "created_by_id",
+            "category",
+            "category_id",
+            "tags",
+            "tag_ids",
             "created_at",
             "updated_at",
             "starts_at",
@@ -88,16 +126,10 @@ class PollSerializer(serializers.ModelSerializer):
             "unique_voters",
             "options",
         ]
-        read_only_fields = [
-            "id",
-            "created_by",
-            "created_by_id",
-            "created_at",
-            "updated_at",
-            "is_open",
-            "total_votes",
-            "unique_voters",
-        ]
+
+    def get_tag_ids(self, obj):
+        """Get list of tag IDs."""
+        return list(obj.tags.values_list("id", flat=True))
 
     def to_representation(self, instance):
         """Override to return translated fields based on request language."""
@@ -118,6 +150,16 @@ class PollCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating a Poll with nested options, validation, and translation support."""
 
     options = PollOptionCreateSerializer(many=True, required=False, allow_empty=True)
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True,
+        required=False,
+    )
 
     class Meta:
         model = Poll
@@ -135,6 +177,8 @@ class PollCreateSerializer(serializers.ModelSerializer):
             "description_fr",
             "description_de",
             "description_sw",
+            "category",
+            "tags",
             "starts_at",
             "ends_at",
             "is_active",
@@ -208,8 +252,9 @@ class PollCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """Create poll with nested options and translations."""
+        """Create poll with nested options, translations, category, and tags."""
         options_data = validated_data.pop("options", [])
+        tags_data = validated_data.pop("tags", [])
         
         # Handle default language: if 'title' is provided but 'title_en' is not,
         # modeltranslation will handle it, but we ensure consistency
@@ -219,6 +264,10 @@ class PollCreateSerializer(serializers.ModelSerializer):
             validated_data["description_en"] = validated_data["description"]
         
         poll = Poll.objects.create(**validated_data)
+        
+        # Add tags (ManyToManyField must be set after creation)
+        if tags_data:
+            poll.tags.set(tags_data)
 
         # Create options in order
         for order, option_data in enumerate(options_data, start=0):

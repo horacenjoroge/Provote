@@ -5,6 +5,54 @@ Poll models for Provote.
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
+
+
+class Category(models.Model):
+    """Model representing a poll category (Politics, Sports, etc.)."""
+
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "categories"
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["slug"]),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+
+class Tag(models.Model):
+    """Model representing a freeform tag for polls."""
+
+    name = models.CharField(max_length=50, unique=True)
+    slug = models.SlugField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+        indexes = [
+            models.Index(fields=["slug"]),
+            models.Index(fields=["name"]),
+        ]
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
 
 class Poll(models.Model):
@@ -19,6 +67,21 @@ class Poll(models.Model):
     ends_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_draft = models.BooleanField(default=False, help_text="If True, poll is a draft and not visible publicly")
+    # Category and tags
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="polls",
+        help_text="Category this poll belongs to",
+    )
+    tags = models.ManyToManyField(
+        Tag,
+        blank=True,
+        related_name="polls",
+        help_text="Tags associated with this poll",
+    )
     # Settings: JSON field for flexible poll configuration
     settings = models.JSONField(default=dict, blank=True, help_text="Poll settings (e.g., allow_multiple_votes, show_results)")
     # Security rules: JSON field for security configuration
@@ -33,6 +96,7 @@ class Poll(models.Model):
             models.Index(fields=["created_at"]),
             models.Index(fields=["is_active", "starts_at", "ends_at"]),
             models.Index(fields=["is_draft", "created_by"]),
+            models.Index(fields=["category"]),
         ]
 
     def __str__(self):

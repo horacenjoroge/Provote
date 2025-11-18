@@ -27,7 +27,7 @@ from core.services.poll_analytics import (
     get_participation_rate,
 )
 
-from .models import Poll, PollOption
+from .models import Poll, PollOption, Category, Tag
 from .permissions import CanModifyPoll, IsAdminOrPollOwner, IsPollOwnerOrReadOnly
 from .services import (
     calculate_poll_results,
@@ -38,11 +38,13 @@ from .services import (
 )
 from .serializers import (
     BulkPollOptionCreateSerializer,
+    CategorySerializer,
     PollCreateSerializer,
     PollOptionSerializer,
     PollSerializer,
     PollTemplateCreateSerializer,
     PollUpdateSerializer,
+    TagSerializer,
 )
 from .templates import get_template, list_templates
 
@@ -67,7 +69,7 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
     serializer_class = PollSerializer
     permission_classes = [IsPollOwnerOrReadOnly, CanModifyPoll]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["title", "description"]
+    search_fields = ["title", "description", "tags__name"]
     ordering_fields = ["created_at", "starts_at", "ends_at", "cached_total_votes"]
     ordering = ["-created_at"]
     
@@ -141,11 +143,58 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
                     | models.Q(ends_at__lt=now)
                 )
 
+        # Filter by category (by slug or ID)
+        category = self.request.query_params.get("category", None)
+        if category:
+            # Try to convert to int for ID lookup, otherwise use as slug
+            try:
+                category_id = int(category)
+                queryset = queryset.filter(category__id=category_id)
+            except ValueError:
+                # Not a number, treat as slug
+                queryset = queryset.filter(category__slug=category)
+
+        # Filter by tags (comma-separated slugs or IDs)
+        tags = self.request.query_params.get("tags", None)
+        if tags:
+            tag_list = [tag.strip() for tag in tags.split(",")]
+            # Separate IDs and slugs
+            tag_ids = []
+            tag_slugs = []
+            for tag_val in tag_list:
+                try:
+                    tag_ids.append(int(tag_val))
+                except ValueError:
+                    tag_slugs.append(tag_val)
+            
+            # Build query
+            tag_q = models.Q()
+            if tag_ids:
+                tag_q |= models.Q(tags__id__in=tag_ids)
+            if tag_slugs:
+                tag_q |= models.Q(tags__slug__in=tag_slugs)
+            
+            if tag_q:
+                queryset = queryset.filter(tag_q).distinct()
+
+        # Filter by tag search (search tag names)
+        tag_search = self.request.query_params.get("tag_search", None)
+        if tag_search:
+            queryset = queryset.filter(tags__name__icontains=tag_search).distinct()
+
         return queryset
 
     def perform_create(self, serializer):
         """Set the created_by field to the current user."""
         serializer.save(created_by=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        """Create a poll and return it with full nested objects."""
+        response = super().create(request, *args, **kwargs)
+        # Re-serialize with PollSerializer to include nested category and tags
+        poll = Poll.objects.get(id=response.data["id"])
+        serializer = PollSerializer(poll, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         """Update poll with ownership and modification restrictions."""
@@ -1244,3 +1293,63 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
         cache.set(cache_key, response_data, 300)
         
         return Response(response_data, status=status.HTTP_200_OK)
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    """ViewSet for Category model."""
+
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name", "description"]
+    ordering_fields = ["name", "created_at"]
+    ordering = ["name"]
+
+    @action(detail=True, methods=["get"])
+    def polls(self, request, pk=None):
+        """Get all polls in this category."""
+        category = self.get_object()
+        user = request.user
+        polls = category.polls.all()
+
+        # Filter out drafts from public listings
+        if not user.is_authenticated:
+            polls = polls.filter(is_draft=False)
+        elif not request.query_params.get("include_drafts", "false").lower() == "true":
+            polls = polls.filter(
+                models.Q(is_draft=False) | models.Q(is_draft=True, created_by=user)
+            )
+
+        serializer = PollSerializer(polls, many=True, context={"request": request})
+        return Response(serializer.data)
+
+
+class TagViewSet(viewsets.ModelViewSet):
+    """ViewSet for Tag model."""
+
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["name"]
+    ordering_fields = ["name", "created_at"]
+    ordering = ["name"]
+
+    @action(detail=True, methods=["get"])
+    def polls(self, request, pk=None):
+        """Get all polls with this tag."""
+        tag = self.get_object()
+        user = request.user
+        polls = tag.polls.all()
+
+        # Filter out drafts from public listings
+        if not user.is_authenticated:
+            polls = polls.filter(is_draft=False)
+        elif not request.query_params.get("include_drafts", "false").lower() == "true":
+            polls = polls.filter(
+                models.Q(is_draft=False) | models.Q(is_draft=True, created_by=user)
+            )
+
+        serializer = PollSerializer(polls, many=True, context={"request": request})
+        return Response(serializer.data)
