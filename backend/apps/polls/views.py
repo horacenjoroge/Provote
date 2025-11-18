@@ -2,7 +2,9 @@
 Views for Polls app with comprehensive CRUD operations.
 """
 
+import json
 import logging
+from django.conf import settings
 from django.db import models, transaction
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -11,6 +13,13 @@ from rest_framework.response import Response
 
 from core.mixins import RateLimitHeadersMixin
 from core.throttles import PollCreateRateThrottle, PollReadRateThrottle
+from core.services.export_service import (
+    estimate_export_size,
+    export_analytics_report_pdf,
+    export_audit_trail,
+    export_poll_results_pdf,
+    export_vote_log,
+)
 from core.services.poll_analytics import (
     get_comprehensive_analytics,
     get_total_votes_over_time,
@@ -254,7 +263,7 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
         option.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["get"])
+    @action(detail=True, methods=["get"], url_path="results")
     def results(self, request, pk=None):
         """
         Get poll results with comprehensive calculations.
@@ -359,7 +368,7 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @action(detail=True, methods=["get"], url_path="results/export")
+    @action(detail=True, methods=["get"], url_path="results/export", url_name="results-export")
     def results_export(self, request, pk=None):
         """
         Export poll results in various formats.
@@ -375,7 +384,12 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
         - 404 Not Found: Poll not found
         - 400 Bad Request: Invalid format
         """
-        poll = self.get_object()
+        logger.info(f"results_export called: pk={pk}, format={request.query_params.get('format')}, path={request.path}")
+        try:
+            poll = self.get_object()
+        except Exception as e:
+            logger.error(f"Error getting poll {pk}: {e}")
+            raise
         
         # Check visibility rules
         if not can_view_results(poll, request.user):
@@ -389,25 +403,336 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
         
         # Get format from query params
         export_format = request.query_params.get("format", "json").lower()
+        use_background = request.query_params.get("background", "false").lower() == "true"
         
+        # Check if export is large enough for background processing
+        estimated_size = estimate_export_size(poll.id, "results")
+        large_export_threshold = getattr(settings, "LARGE_EXPORT_THRESHOLD", 1024 * 1024)  # 1MB default
+        
+        if use_background or estimated_size > large_export_threshold:
+            # Use background task
+            if not request.user.is_authenticated or not request.user.email:
+                return Response(
+                    {"error": "Email address required for background exports"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            from apps.polls.tasks import export_poll_data_task
+            
+            task = export_poll_data_task.delay(
+                poll_id=poll.id,
+                export_type="results",
+                format=export_format,
+                user_email=request.user.email,
+            )
+            
+            return Response(
+                {
+                    "message": "Export started in background. You will receive an email when ready.",
+                    "task_id": task.id,
+                    "estimated_size_bytes": estimated_size,
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+        
+        # Immediate export
         try:
             if export_format == "csv":
-                csv_content = export_results_to_csv(poll.id)
+                from core.services.export_service import export_poll_results_csv
                 from django.http import HttpResponse
                 
+                csv_content = export_poll_results_csv(poll.id)
                 response = HttpResponse(csv_content, content_type="text/csv")
                 response["Content-Disposition"] = f'attachment; filename="poll_{poll.id}_results.csv"'
                 return response
                 
             elif export_format == "json":
-                json_data = export_results_to_json(poll.id)
+                from core.services.export_service import export_poll_results_json
+                json_data = export_poll_results_json(poll.id)
                 return Response(json_data, status=status.HTTP_200_OK)
+            
+            elif export_format == "pdf":
+                pdf_buffer = export_poll_results_pdf(poll.id)
+                from django.http import HttpResponse
+                
+                response = HttpResponse(pdf_buffer.getvalue(), content_type="application/pdf")
+                response["Content-Disposition"] = f'attachment; filename="poll_{poll.id}_results.pdf"'
+                return response
                 
             else:
                 return Response(
-                    {"error": f"Invalid format '{export_format}'. Supported formats: csv, json"},
+                    {"error": f"Invalid format '{export_format}'. Supported formats: csv, json, pdf"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+                
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except ImportError as e:
+            return Response(
+                {"error": f"PDF export requires reportlab: {str(e)}"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+    @action(detail=True, methods=["get"], url_path="export/vote-log")
+    def export_vote_log(self, request, pk=None):
+        """
+        Export vote log for a poll.
+        
+        GET /api/v1/polls/{id}/export/vote-log/?format=csv|json&anonymize=true&include_invalid=false
+        
+        Query Parameters:
+        - format: Export format (csv or json, default: csv)
+        - anonymize: Whether to anonymize user data (default: false)
+        - include_invalid: Whether to include invalid votes (default: false)
+        - background: Use background task for large exports (default: false)
+        
+        Returns:
+        - 200 OK: Exported vote log
+        - 202 Accepted: Export started in background
+        - 403 Forbidden: User not authorized
+        - 404 Not Found: Poll not found
+        """
+        poll = self.get_object()
+        
+        # Check permissions (poll owner or admin)
+        if not IsAdminOrPollOwner().has_object_permission(request, self, poll):
+            return Response(
+                {"error": "You do not have permission to export vote log for this poll"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        
+        export_format = request.query_params.get("format", "csv").lower()
+        anonymize = request.query_params.get("anonymize", "false").lower() == "true"
+        include_invalid = request.query_params.get("include_invalid", "false").lower() == "true"
+        use_background = request.query_params.get("background", "false").lower() == "true"
+        
+        # Check if export is large enough for background processing
+        estimated_size = estimate_export_size(poll.id, "vote_log")
+        large_export_threshold = getattr(settings, "LARGE_EXPORT_THRESHOLD", 1024 * 1024)
+        
+        if use_background or estimated_size > large_export_threshold:
+            if not request.user.is_authenticated or not request.user.email:
+                return Response(
+                    {"error": "Email address required for background exports"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            from apps.polls.tasks import export_poll_data_task
+            
+            task = export_poll_data_task.delay(
+                poll_id=poll.id,
+                export_type="vote_log",
+                format=export_format,
+                user_email=request.user.email,
+                anonymize=anonymize,
+                include_invalid=include_invalid,
+            )
+            
+            return Response(
+                {
+                    "message": "Export started in background. You will receive an email when ready.",
+                    "task_id": task.id,
+                    "estimated_size_bytes": estimated_size,
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+        
+        # Immediate export
+        try:
+            content = export_vote_log(
+                poll_id=poll.id,
+                format=export_format,
+                anonymize=anonymize,
+                include_invalid=include_invalid
+            )
+            
+            if export_format == "csv":
+                from django.http import HttpResponse
+                response = HttpResponse(content, content_type="text/csv")
+                response["Content-Disposition"] = f'attachment; filename="poll_{poll.id}_vote_log.csv"'
+                return response
+            else:
+                return Response(json.loads(content), status=status.HTTP_200_OK)
+                
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+    @action(detail=True, methods=["get"], url_path="export/analytics")
+    def export_analytics(self, request, pk=None):
+        """
+        Export analytics report as PDF.
+        
+        GET /api/v1/polls/{id}/export/analytics/?background=false
+        
+        Query Parameters:
+        - background: Use background task (default: false)
+        
+        Returns:
+        - 200 OK: PDF analytics report
+        - 202 Accepted: Export started in background
+        - 403 Forbidden: User not authorized
+        - 404 Not Found: Poll not found
+        """
+        poll = self.get_object()
+        
+        # Check permissions
+        if not IsAdminOrPollOwner().has_object_permission(request, self, poll):
+            return Response(
+                {"error": "You do not have permission to export analytics for this poll"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        
+        use_background = request.query_params.get("background", "false").lower() == "true"
+        
+        if use_background:
+            if not request.user.is_authenticated or not request.user.email:
+                return Response(
+                    {"error": "Email address required for background exports"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            from apps.polls.tasks import export_poll_data_task
+            
+            task = export_poll_data_task.delay(
+                poll_id=poll.id,
+                export_type="analytics",
+                format="pdf",
+                user_email=request.user.email,
+            )
+            
+            return Response(
+                {
+                    "message": "Export started in background. You will receive an email when ready.",
+                    "task_id": task.id,
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+        
+        # Immediate export
+        try:
+            pdf_buffer = export_analytics_report_pdf(poll.id)
+            from django.http import HttpResponse
+            
+            response = HttpResponse(pdf_buffer.getvalue(), content_type="application/pdf")
+            response["Content-Disposition"] = f'attachment; filename="poll_{poll.id}_analytics.pdf"'
+            return response
+            
+        except ValueError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except ImportError as e:
+            return Response(
+                {"error": f"PDF export requires reportlab: {str(e)}"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+    @action(detail=True, methods=["get"], url_path="export/audit-trail")
+    def export_audit_trail(self, request, pk=None):
+        """
+        Export audit trail for a poll.
+        
+        GET /api/v1/polls/{id}/export/audit-trail/?format=csv|json&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+        
+        Query Parameters:
+        - format: Export format (csv or json, default: csv)
+        - start_date: Start date filter (ISO format)
+        - end_date: End date filter (ISO format)
+        - background: Use background task (default: false)
+        
+        Returns:
+        - 200 OK: Exported audit trail
+        - 202 Accepted: Export started in background
+        - 403 Forbidden: User not authorized (admin only)
+        - 404 Not Found: Poll not found
+        """
+        from datetime import datetime
+        from rest_framework.permissions import IsAdminUser
+        
+        poll = self.get_object()
+        
+        # Check permissions (admin only for audit trail)
+        if not IsAdminUser().has_permission(request, self):
+            return Response(
+                {"error": "Only administrators can export audit trails"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        
+        export_format = request.query_params.get("format", "csv").lower()
+        start_date_str = request.query_params.get("start_date")
+        end_date_str = request.query_params.get("end_date")
+        use_background = request.query_params.get("background", "false").lower() == "true"
+        
+        start_date = None
+        end_date = None
+        
+        if start_date_str:
+            try:
+                start_date = datetime.fromisoformat(start_date_str.replace("Z", "+00:00"))
+            except ValueError:
+                return Response(
+                    {"error": "Invalid start_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        
+        if end_date_str:
+            try:
+                end_date = datetime.fromisoformat(end_date_str.replace("Z", "+00:00"))
+            except ValueError:
+                return Response(
+                    {"error": "Invalid end_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        
+        if use_background:
+            if not request.user.is_authenticated or not request.user.email:
+                return Response(
+                    {"error": "Email address required for background exports"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            from apps.polls.tasks import export_poll_data_task
+            
+            task = export_poll_data_task.delay(
+                poll_id=poll.id,
+                export_type="audit",
+                format=export_format,
+                user_email=request.user.email,
+                start_date=start_date.isoformat() if start_date else None,
+                end_date=end_date.isoformat() if end_date else None,
+            )
+            
+            return Response(
+                {
+                    "message": "Export started in background. You will receive an email when ready.",
+                    "task_id": task.id,
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+        
+        # Immediate export
+        try:
+            content = export_audit_trail(
+                poll_id=poll.id,
+                format=export_format,
+                start_date=start_date,
+                end_date=end_date
+            )
+            
+            if export_format == "csv":
+                from django.http import HttpResponse
+                response = HttpResponse(content, content_type="text/csv")
+                response["Content-Disposition"] = f'attachment; filename="poll_{poll.id}_audit_trail.csv"'
+                return response
+            else:
+                return Response(json.loads(content), status=status.HTTP_200_OK)
                 
         except ValueError as e:
             return Response(

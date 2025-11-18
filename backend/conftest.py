@@ -4,7 +4,7 @@ This file makes fixtures available to all tests in backend/.
 """
 
 import pytest
-from apps.polls.models import Choice, Poll
+from apps.polls.models import Poll, PollOption
 from django.contrib.auth.models import User
 
 # Ensure pytest-django is loaded
@@ -54,8 +54,8 @@ def poll(db, user):
 @pytest.fixture
 def choices(db, poll):
     """Create test choices for a poll."""
-    choice1 = Choice.objects.create(poll=poll, text="Choice 1")
-    choice2 = Choice.objects.create(poll=poll, text="Choice 2")
+    choice1 = PollOption.objects.create(poll=poll, text="Choice 1", order=0)
+    choice2 = PollOption.objects.create(poll=poll, text="Choice 2", order=1)
     return [choice1, choice2]
 
 

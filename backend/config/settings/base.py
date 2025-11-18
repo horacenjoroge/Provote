@@ -239,6 +239,9 @@ PATTERN_ANALYSIS_MIN_VOTES_IN_CLUSTER = env.int("PATTERN_ANALYSIS_MIN_VOTES_IN_C
 PATTERN_ANALYSIS_UA_MIN_VOTERS = env.int("PATTERN_ANALYSIS_UA_MIN_VOTERS", default=10)  # Min voters for UA anomaly
 VPN_PROXY_IP_RANGES = env.list("VPN_PROXY_IP_RANGES", default=[])  # List of VPN/proxy IP prefixes to flag
 
+# Export Settings
+LARGE_EXPORT_THRESHOLD = env.int("LARGE_EXPORT_THRESHOLD", default=1024 * 1024)  # 1MB default threshold for background exports
+
 # Logging
 LOGGING = {
     "version": 1,
