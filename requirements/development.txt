@@ -1,5 +1,8 @@
 -r base.txt
 
+# WSGI Server (needed for Docker)
+gunicorn==21.2.0
+
 # Development Tools
 ipython==8.18.1
 ipdb==0.13.13
