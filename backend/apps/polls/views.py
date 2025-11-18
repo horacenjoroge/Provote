@@ -5,6 +5,7 @@ Views for Polls app with comprehensive CRUD operations.
 import json
 import logging
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.db import models, transaction
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
@@ -193,6 +194,22 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
         response = super().create(request, *args, **kwargs)
         # Re-serialize with PollSerializer to include nested category and tags
         poll = Poll.objects.get(id=response.data["id"])
+        
+        # Notify followers about new poll (only if not a draft)
+        if not poll.is_draft:
+            try:
+                from apps.users.models import Follow
+                from apps.notifications.services import notify_new_poll_from_followed
+                
+                # Get followers of the poll creator (users who follow poll.created_by)
+                follows = Follow.objects.filter(following=poll.created_by).select_related("follower")
+                followers = [follow.follower for follow in follows]
+                
+                if followers:
+                    notify_new_poll_from_followed(poll, followers)
+            except Exception as e:
+                logger.error(f"Error notifying followers about new poll {poll.id}: {e}")
+        
         serializer = PollSerializer(poll, context={"request": request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
