@@ -14,7 +14,14 @@ class PollsConfig(AppConfig):
         """
         Initialize Redis Pub/Sub subscriber when app is ready.
         This starts the subscriber in a background thread to listen for vote events.
+        Also import translations to register them with modeltranslation.
         """
+        # Import translations to register with modeltranslation
+        try:
+            from . import translation  # noqa: F401
+        except ImportError:
+            pass  # Translation module may not exist in all environments
+        
         # Only start subscriber in non-test environments
         import sys
         from django.conf import settings

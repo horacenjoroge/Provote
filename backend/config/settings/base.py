@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django_celery_beat",
     "django_celery_results",
     "channels",
+    "modeltranslation",  # Must be before local apps
     # Local apps
     "apps.polls",
     "apps.votes",
@@ -122,6 +123,20 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
+
+# Supported languages for translations
+LANGUAGES = [
+    ("en", "English"),
+    ("es", "Spanish"),
+    ("fr", "French"),
+    ("de", "German"),
+    ("sw", "Swahili"),
+]
+
+# Modeltranslation configuration
+MODELTRANSLATION_DEFAULT_LANGUAGE = "en"
+MODELTRANSLATION_LANGUAGES = ("en", "es", "fr", "de", "sw")
+MODELTRANSLATION_FALLBACK_LANGUAGES = ("en",)
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"

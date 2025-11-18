@@ -6,6 +6,8 @@ from django.db import models
 from django.utils import timezone
 from rest_framework import serializers
 
+from core.utils.language import get_request_language, get_translated_field
+
 from .models import Poll, PollOption
 
 # Validation constants
@@ -14,7 +16,7 @@ MAX_OPTIONS = 100
 
 
 class PollOptionSerializer(serializers.ModelSerializer):
-    """Serializer for PollOption model."""
+    """Serializer for PollOption model with language support."""
 
     vote_count = serializers.ReadOnlyField()
     cached_vote_count = serializers.ReadOnlyField()
@@ -24,17 +26,39 @@ class PollOptionSerializer(serializers.ModelSerializer):
         fields = ["id", "text", "order", "vote_count", "cached_vote_count", "created_at"]
         read_only_fields = ["id", "vote_count", "cached_vote_count", "created_at"]
 
+    def to_representation(self, instance):
+        """Override to return translated text based on request language."""
+        data = super().to_representation(instance)
+        
+        # Get language from request context
+        request = self.context.get("request")
+        if request:
+            language_code = get_request_language(request)
+            # Get translated text
+            data["text"] = get_translated_field(instance, "text", language_code)
+        
+        return data
+
 
 class PollOptionCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating PollOption."""
+    """Serializer for creating PollOption with translation support."""
 
     class Meta:
         model = PollOption
-        fields = ["text", "order"]
+        fields = [
+            "text",
+            "text_en",
+            "text_es",
+            "text_fr",
+            "text_de",
+            "text_sw",
+            "order",
+        ]
+        # Translation fields are optional - if not provided, will use the default language field
 
 
 class PollSerializer(serializers.ModelSerializer):
-    """Serializer for Poll model with options."""
+    """Serializer for Poll model with options and language support."""
 
     options = PollOptionSerializer(many=True, read_only=True)
     created_by = serializers.StringRelatedField(read_only=True)
@@ -75,9 +99,23 @@ class PollSerializer(serializers.ModelSerializer):
             "unique_voters",
         ]
 
+    def to_representation(self, instance):
+        """Override to return translated fields based on request language."""
+        data = super().to_representation(instance)
+        
+        # Get language from request context
+        request = self.context.get("request")
+        if request:
+            language_code = get_request_language(request)
+            # Get translated title and description
+            data["title"] = get_translated_field(instance, "title", language_code)
+            data["description"] = get_translated_field(instance, "description", language_code)
+        
+        return data
+
 
 class PollCreateSerializer(serializers.ModelSerializer):
-    """Serializer for creating a Poll with nested options and validation."""
+    """Serializer for creating a Poll with nested options, validation, and translation support."""
 
     options = PollOptionCreateSerializer(many=True, required=False, allow_empty=True)
 
@@ -86,7 +124,17 @@ class PollCreateSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
+            "title_en",
+            "title_es",
+            "title_fr",
+            "title_de",
+            "title_sw",
             "description",
+            "description_en",
+            "description_es",
+            "description_fr",
+            "description_de",
+            "description_sw",
             "starts_at",
             "ends_at",
             "is_active",
@@ -96,6 +144,7 @@ class PollCreateSerializer(serializers.ModelSerializer):
             "options",
         ]
         read_only_fields = ["id"]
+        # Translation fields are optional - if not provided, will use the default language field
 
     def validate_options(self, value):
         """Validate options count."""
@@ -159,14 +208,25 @@ class PollCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """Create poll with nested options."""
+        """Create poll with nested options and translations."""
         options_data = validated_data.pop("options", [])
+        
+        # Handle default language: if 'title' is provided but 'title_en' is not,
+        # modeltranslation will handle it, but we ensure consistency
+        if "title" in validated_data and "title_en" not in validated_data:
+            validated_data["title_en"] = validated_data["title"]
+        if "description" in validated_data and "description_en" not in validated_data:
+            validated_data["description_en"] = validated_data["description"]
+        
         poll = Poll.objects.create(**validated_data)
 
         # Create options in order
         for order, option_data in enumerate(options_data, start=0):
             # Remove 'order' from option_data if present, since we're setting it explicitly
             option_data_clean = {k: v for k, v in option_data.items() if k != 'order'}
+            # Handle default language for option text
+            if "text" in option_data_clean and "text_en" not in option_data_clean:
+                option_data_clean["text_en"] = option_data_clean["text"]
             PollOption.objects.create(poll=poll, order=order, **option_data_clean)
 
         return poll
