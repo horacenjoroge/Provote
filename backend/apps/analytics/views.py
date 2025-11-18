@@ -4,8 +4,17 @@ Views for Analytics app.
 
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
+from core.services.admin_dashboard import (
+    get_active_polls_and_voters,
+    get_dashboard_summary,
+    get_fraud_alerts_summary,
+    get_performance_metrics,
+    get_recent_activity,
+    get_system_statistics,
+)
 from core.services.poll_analytics import (
     get_comprehensive_analytics,
     get_analytics_summary,
@@ -192,3 +201,135 @@ class PollAnalyticsViewSet(viewsets.ReadOnlyModelViewSet):
         distribution = get_vote_distribution(poll_id)
         
         return Response({"poll_id": poll_id, "distribution": distribution})
+
+
+class AdminDashboardViewSet(viewsets.ViewSet):
+    """
+    Admin dashboard API endpoints.
+    
+    All endpoints require admin authentication.
+    """
+    
+    permission_classes = [IsAdminUser]
+    
+    @action(detail=False, methods=["get"], url_path="statistics")
+    def statistics(self, request):
+        """
+        Get system-wide statistics.
+        
+        GET /api/v1/admin-dashboard/statistics/
+        
+        Returns:
+            - total_polls: Total number of polls
+            - active_polls: Number of active polls
+            - total_votes: Total number of votes
+            - total_users: Total number of users
+            - total_fraud_alerts: Total number of fraud alerts
+            - blocked_ips: Number of blocked IPs
+        """
+        stats = get_system_statistics()
+        return Response(stats, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=["get"], url_path="activity")
+    def activity(self, request):
+        """
+        Get recent activity feed.
+        
+        GET /api/v1/admin-dashboard/activity/?limit=50
+        
+        Query params:
+            - limit: Maximum number of activities (default: 50, max: 100)
+        
+        Returns list of recent activities (votes, polls created, fraud alerts, etc.)
+        """
+        limit = int(request.query_params.get("limit", 50))
+        if limit < 1 or limit > 100:
+            limit = 50
+        
+        activities = get_recent_activity(limit=limit)
+        return Response({
+            "count": len(activities),
+            "results": activities
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=["get"], url_path="fraud-alerts")
+    def fraud_alerts(self, request):
+        """
+        Get fraud alerts summary.
+        
+        GET /api/v1/admin-dashboard/fraud-alerts/?limit=20
+        
+        Query params:
+            - limit: Maximum number of recent alerts (default: 20)
+        
+        Returns:
+            - total: Total number of fraud alerts
+            - recent_24h: Alerts in last 24 hours
+            - recent_7d: Alerts in last 7 days
+            - recent: List of recent alerts
+            - by_risk_score: Count by risk score ranges
+            - top_polls: Top polls with fraud alerts
+        """
+        limit = int(request.query_params.get("limit", 20))
+        if limit < 1 or limit > 100:
+            limit = 20
+        
+        alerts = get_fraud_alerts_summary(limit=limit)
+        return Response(alerts, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=["get"], url_path="performance")
+    def performance(self, request):
+        """
+        Get performance metrics.
+        
+        GET /api/v1/admin-dashboard/performance/
+        
+        Returns:
+            - api_latency: Average API response time
+            - db_queries: Database query statistics
+            - cache_hit_rate: Cache hit rate
+            - error_rate: Error rate
+        
+        Note: This is a placeholder. In production, implement actual metric collection.
+        """
+        metrics = get_performance_metrics()
+        return Response(metrics, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=["get"], url_path="active-polls")
+    def active_polls(self, request):
+        """
+        Get active polls and recent voters.
+        
+        GET /api/v1/admin-dashboard/active-polls/?limit=20
+        
+        Query params:
+            - limit: Maximum number of polls/voters (default: 20)
+        
+        Returns:
+            - active_polls: List of currently active polls
+            - recent_voters: List of recent voters (last 24h)
+            - top_polls: Top polls by vote count
+        """
+        limit = int(request.query_params.get("limit", 20))
+        if limit < 1 or limit > 100:
+            limit = 20
+        
+        data = get_active_polls_and_voters(limit=limit)
+        return Response(data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=["get"], url_path="summary")
+    def summary(self, request):
+        """
+        Get complete admin dashboard summary.
+        
+        GET /api/v1/admin-dashboard/summary/
+        
+        Returns all dashboard data in one response:
+            - statistics: System-wide statistics
+            - recent_activity: Recent activity feed
+            - fraud_alerts: Fraud alerts summary
+            - performance_metrics: Performance metrics
+            - active_polls_and_voters: Active polls and voters
+        """
+        summary = get_dashboard_summary()
+        return Response(summary, status=status.HTTP_200_OK)
