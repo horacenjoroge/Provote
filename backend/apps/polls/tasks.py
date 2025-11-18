@@ -10,6 +10,7 @@ from celery import shared_task
 from django.conf import settings
 from django.core.mail import send_mail
 from django.utils import timezone
+import pytz
 
 from core.services.export_service import (
     estimate_export_size,
@@ -176,6 +177,202 @@ This link will be available for 7 days.
         return {
             "success": False,
             "poll_id": poll_id,
+            "error": str(e),
+        }
+
+
+@shared_task
+def activate_scheduled_poll(poll_id: int):
+    """
+    Activate a poll that has reached its start time.
+    
+    Args:
+        poll_id: Poll ID to activate
+        
+    Returns:
+        dict: Task result with activation status
+    """
+    try:
+        from apps.polls.models import Poll
+        from core.services.poll_notifications import send_poll_opened_notification
+        
+        poll = Poll.objects.get(id=poll_id)
+        now = timezone.now()
+        
+        # Check if poll should be activated
+        if poll.starts_at <= now and not poll.is_active:
+            poll.is_active = True
+            poll.save(update_fields=["is_active"])
+            
+            logger.info(f"Activated scheduled poll: poll_id={poll_id}, starts_at={poll.starts_at}")
+            
+            # Send notification
+            send_poll_opened_notification(poll)
+            
+            return {
+                "success": True,
+                "poll_id": poll_id,
+                "action": "activated",
+                "activated_at": now.isoformat(),
+            }
+        else:
+            logger.debug(
+                f"Poll {poll_id} not ready for activation: "
+                f"is_active={poll.is_active}, starts_at={poll.starts_at}, now={now}"
+            )
+            return {
+                "success": False,
+                "poll_id": poll_id,
+                "reason": "Poll already active or not yet ready",
+            }
+            
+    except Poll.DoesNotExist:
+        logger.error(f"Poll {poll_id} not found for activation")
+        return {
+            "success": False,
+            "poll_id": poll_id,
+            "error": "Poll not found",
+        }
+    except Exception as e:
+        logger.error(f"Error activating poll {poll_id}: {e}", exc_info=True)
+        return {
+            "success": False,
+            "poll_id": poll_id,
+            "error": str(e),
+        }
+
+
+@shared_task
+def close_scheduled_poll(poll_id: int):
+    """
+    Close a poll that has reached its end time.
+    
+    Args:
+        poll_id: Poll ID to close
+        
+    Returns:
+        dict: Task result with closing status
+    """
+    try:
+        from apps.polls.models import Poll
+        from core.services.poll_notifications import send_poll_closed_notification
+        
+        poll = Poll.objects.get(id=poll_id)
+        now = timezone.now()
+        
+        # Check if poll should be closed
+        if poll.ends_at and poll.ends_at <= now and poll.is_active:
+            poll.is_active = False
+            poll.save(update_fields=["is_active"])
+            
+            logger.info(f"Closed scheduled poll: poll_id={poll_id}, ends_at={poll.ends_at}")
+            
+            # Send notification
+            send_poll_closed_notification(poll)
+            
+            return {
+                "success": True,
+                "poll_id": poll_id,
+                "action": "closed",
+                "closed_at": now.isoformat(),
+            }
+        else:
+            logger.debug(
+                f"Poll {poll_id} not ready for closing: "
+                f"is_active={poll.is_active}, ends_at={poll.ends_at}, now={now}"
+            )
+            return {
+                "success": False,
+                "poll_id": poll_id,
+                "reason": "Poll already closed or not yet ready",
+            }
+            
+    except Poll.DoesNotExist:
+        logger.error(f"Poll {poll_id} not found for closing")
+        return {
+            "success": False,
+            "poll_id": poll_id,
+            "error": "Poll not found",
+        }
+    except Exception as e:
+        logger.error(f"Error closing poll {poll_id}: {e}", exc_info=True)
+        return {
+            "success": False,
+            "poll_id": poll_id,
+            "error": str(e),
+        }
+
+
+@shared_task
+def process_scheduled_polls():
+    """
+    Periodic task to check and process scheduled polls.
+    Checks for polls that need to be activated or closed.
+    
+    This task should run frequently (e.g., every minute) via Celery Beat.
+    
+    Returns:
+        dict: Summary of processed polls
+    """
+    try:
+        from apps.polls.models import Poll
+        
+        now = timezone.now()
+        activated_count = 0
+        closed_count = 0
+        errors = []
+        
+        # Find polls that need to be activated
+        # Polls where starts_at <= now and is_active=False
+        polls_to_activate = Poll.objects.filter(
+            starts_at__lte=now,
+            is_active=False
+        )
+        
+        for poll in polls_to_activate:
+            try:
+                # Call activation directly (not as a separate task) for efficiency
+                result = activate_scheduled_poll.apply(args=(poll.id,))
+                if result.result.get("success"):
+                    activated_count += 1
+            except Exception as e:
+                logger.error(f"Error processing poll {poll.id} for activation: {e}")
+                errors.append(f"Poll {poll.id}: {str(e)}")
+        
+        # Find polls that need to be closed
+        # Polls where ends_at <= now and is_active=True
+        polls_to_close = Poll.objects.filter(
+            ends_at__lte=now,
+            is_active=True
+        )
+        
+        for poll in polls_to_close:
+            try:
+                # Call closing directly (not as a separate task) for efficiency
+                result = close_scheduled_poll.apply(args=(poll.id,))
+                if result.result.get("success"):
+                    closed_count += 1
+            except Exception as e:
+                logger.error(f"Error processing poll {poll.id} for closing: {e}")
+                errors.append(f"Poll {poll.id}: {str(e)}")
+        
+        logger.info(
+            f"Processed scheduled polls: {activated_count} activated, "
+            f"{closed_count} closed, {len(errors)} errors"
+        )
+        
+        return {
+            "success": True,
+            "activated_count": activated_count,
+            "closed_count": closed_count,
+            "errors": errors,
+            "processed_at": now.isoformat(),
+        }
+        
+    except Exception as e:
+        logger.error(f"Error processing scheduled polls: {e}", exc_info=True)
+        return {
+            "success": False,
             "error": str(e),
         }
 

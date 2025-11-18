@@ -242,6 +242,16 @@ VPN_PROXY_IP_RANGES = env.list("VPN_PROXY_IP_RANGES", default=[])  # List of VPN
 # Export Settings
 LARGE_EXPORT_THRESHOLD = env.int("LARGE_EXPORT_THRESHOLD", default=1024 * 1024)  # 1MB default threshold for background exports
 
+# Email Settings
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@provote.com")
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+BASE_URL = env("BASE_URL", default="http://localhost:8000")
+
 # Logging
 LOGGING = {
     "version": 1,
