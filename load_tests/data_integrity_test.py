@@ -21,6 +21,12 @@ class DataIntegrityUser(HttpUser):
     
     wait_time = between(0.5, 1.5)
     
+    def __init__(self, *args, **kwargs):
+        """Initialize with load test header to bypass rate limiting."""
+        super().__init__(*args, **kwargs)
+        # Add header to bypass rate limiting during load tests
+        self.client.headers.update({"X-Load-Test": "true"})
+    
     def on_start(self):
         """Set up user and test poll."""
         # Note: API uses SessionAuthentication, no registration/login endpoints
