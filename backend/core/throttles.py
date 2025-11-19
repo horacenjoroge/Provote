@@ -6,15 +6,44 @@ Provides:
 - Sliding window algorithm
 - Rate limit headers
 - Admin bypass
+- Load test bypass
 """
 
 import time
 from typing import Optional
 
-from rest_framework.throttling import BaseThrottle
+from rest_framework.throttling import BaseThrottle, AnonRateThrottle, UserRateThrottle
 from rest_framework.exceptions import Throttled
 
 from core.utils.rate_limiter import get_rate_limiter
+
+
+class LoadTestBypassMixin:
+    """Mixin to bypass rate limiting for load tests."""
+    
+    def allow_request(self, request, view):
+        """Check if request should bypass rate limiting."""
+        # Check if rate limiting is disabled (for load testing)
+        from django.conf import settings
+        if getattr(settings, 'DISABLE_RATE_LIMITING', False):
+            return True
+        
+        # Check for load test header (allows bypassing rate limits for load tests)
+        if request.META.get('HTTP_X_LOAD_TEST') == 'true':
+            return True
+        
+        # Call parent's allow_request
+        return super().allow_request(request, view)
+
+
+class LoadTestAnonRateThrottle(LoadTestBypassMixin, AnonRateThrottle):
+    """Anonymous rate throttle with load test bypass."""
+    pass
+
+
+class LoadTestUserRateThrottle(LoadTestBypassMixin, UserRateThrottle):
+    """User rate throttle with load test bypass."""
+    pass
 
 
 class AdvancedRateThrottle(BaseThrottle):
