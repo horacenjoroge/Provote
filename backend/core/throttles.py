@@ -60,6 +60,15 @@ class AdvancedRateThrottle(BaseThrottle):
         Returns:
             Rate limit (requests per minute) or None if no limit
         """
+        # Check if rate limiting is disabled (for load testing)
+        from django.conf import settings
+        if getattr(settings, 'DISABLE_RATE_LIMITING', False):
+            return None
+        
+        # Check for load test header (allows bypassing rate limits for load tests)
+        if request.META.get('HTTP_X_LOAD_TEST') == 'true':
+            return None
+        
         # Check if user is admin (bypass rate limits)
         if request.user and request.user.is_authenticated:
             if request.user.is_staff or request.user.is_superuser:

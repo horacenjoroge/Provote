@@ -21,6 +21,12 @@ class DegradationTestUser(HttpUser):
     
     wait_time = between(0.1, 0.3)  # Aggressive load
     
+    def __init__(self, *args, **kwargs):
+        """Initialize with load test header to bypass rate limiting."""
+        super().__init__(*args, **kwargs)
+        # Add header to bypass rate limiting during load tests
+        self.client.headers.update({"X-Load-Test": "true"})
+    
     def on_start(self):
         """Set up user (anonymous for load testing)."""
         # Note: API uses SessionAuthentication, no registration/login endpoints

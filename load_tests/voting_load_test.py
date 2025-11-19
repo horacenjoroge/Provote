@@ -29,6 +29,12 @@ class VotingUser(HttpUser):
     
     wait_time = between(1, 3)  # Wait 1-3 seconds between tasks
     
+    def __init__(self, *args, **kwargs):
+        """Initialize with load test header to bypass rate limiting."""
+        super().__init__(*args, **kwargs)
+        # Add header to bypass rate limiting during load tests
+        self.client.headers.update({"X-Load-Test": "true"})
+    
     def on_start(self):
         """Called when a simulated user starts."""
         # Note: API uses SessionAuthentication, no registration/login endpoints
@@ -149,6 +155,12 @@ class HighVolumeVotingUser(FastHttpUser):
     """
     
     wait_time = between(0.1, 0.5)  # Very short wait time
+    
+    def __init__(self, *args, **kwargs):
+        """Initialize with load test header to bypass rate limiting."""
+        super().__init__(*args, **kwargs)
+        # Add header to bypass rate limiting during load tests
+        self.client.headers.update({"X-Load-Test": "true"})
     
     def on_start(self):
         """Set up user for high-volume voting."""

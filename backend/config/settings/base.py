@@ -260,6 +260,10 @@ VPN_PROXY_IP_RANGES = env.list("VPN_PROXY_IP_RANGES", default=[])  # List of VPN
 # Export Settings
 LARGE_EXPORT_THRESHOLD = env.int("LARGE_EXPORT_THRESHOLD", default=1024 * 1024)  # 1MB default threshold for background exports
 
+# Load Testing Settings
+# Set DISABLE_RATE_LIMITING=True to disable rate limiting for load tests
+DISABLE_RATE_LIMITING = env.bool("DISABLE_RATE_LIMITING", default=False)
+
 # Email Settings
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@provote.com")
 EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
