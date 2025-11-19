@@ -157,9 +157,11 @@ REDIS_PORT = env.int("REDIS_PORT", default=6379)
 REDIS_DB = env.int("REDIS_DB", default=0)
 
 # Cache Configuration (Redis)
+# Note: Django 5.0's built-in Redis cache doesn't use CLIENT_CLASS
+# Use django-redis for advanced features, or use built-in RedisCache
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
