@@ -221,22 +221,33 @@ def cast_vote(
             # In production, you might want to be more strict
 
         # Step 4: Voter validation
-        # Check if user has already voted on this poll (with lock)
-        # For anonymous users, check by voter_token instead
-        if user and user.is_authenticated:
-            existing_vote = Vote.objects.select_for_update().filter(user=user, poll=poll).first()
-        else:
-            # Anonymous user - check by voter_token (will be set after generation)
-            existing_vote = None
+        # First check by idempotency_key (for idempotent retries)
+        existing_vote = Vote.objects.select_for_update().filter(
+            idempotency_key=idempotency_key, poll=poll
+        ).first()
         
-        # Re-check after voter_token is generated for anonymous users
-        if not existing_vote and not (user and user.is_authenticated):
-            # For anonymous users, check by idempotency_key which includes fingerprint+IP
-            existing_vote = Vote.objects.select_for_update().filter(
-                idempotency_key=idempotency_key, poll=poll
-            ).first()
+        # If not found by idempotency_key, check by user+poll (for duplicate vote attempts)
+        if not existing_vote:
+            if user and user.is_authenticated:
+                existing_vote = Vote.objects.select_for_update().filter(user=user, poll=poll).first()
+            else:
+                # For anonymous users, check by voter_token
+                existing_vote = Vote.objects.select_for_update().filter(
+                    voter_token=voter_token, poll=poll
+                ).first()
         
         if existing_vote:
+            # If the existing vote has the same idempotency_key, it's an idempotent retry
+            if existing_vote.idempotency_key == idempotency_key:
+                # Store result for idempotency
+                store_idempotency_result(
+                    idempotency_key,
+                    {"vote_id": existing_vote.id, "status": "existing"},
+                )
+                logger.info(f"Idempotent retry: returning existing vote {existing_vote.id}")
+                return existing_vote, False  # Not a new vote
+            
+            # Otherwise, it's a duplicate vote attempt (different idempotency_key but same user/poll)
             # Record IP violation for duplicate vote attempt
             if ip_address:
                 try:
@@ -249,13 +260,13 @@ def cast_vote(
                 except Exception as e:
                     logger.error(f"Error recording IP violation: {e}")
             
-            # Store result for idempotency
+            # Store result for idempotency (even though it's a duplicate)
             store_idempotency_result(
                 idempotency_key,
                 {"vote_id": existing_vote.id, "status": "duplicate"},
             )
             raise DuplicateVoteError(
-                f"User {user.username} has already voted on poll {poll_id}"
+                f"User {user.username if user and user.is_authenticated else 'anonymous'} has already voted on poll {poll_id}"
             )
 
         # Check IP limits if configured in security_rules
