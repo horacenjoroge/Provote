@@ -30,20 +30,27 @@ Advanced security tests for edge cases:
 
 ## Running Security Tests
 
-### Run all security tests:
+### Run all security tests (without coverage requirement):
 ```bash
-pytest backend/tests/test_security*.py -v -m security
+pytest backend/tests/test_security*.py -v -m security --no-cov
+```
+
+Or to allow lower coverage for security tests:
+```bash
+pytest backend/tests/test_security*.py -v -m security --cov-fail-under=0
 ```
 
 ### Run specific test class:
 ```bash
-pytest backend/tests/test_security.py::TestSQLInjectionProtection -v
+pytest backend/tests/test_security.py::TestSQLInjectionProtection -v --no-cov
 ```
 
-### Run with coverage:
+### Run with coverage (for reporting only):
 ```bash
-pytest backend/tests/test_security*.py -v -m security --cov=backend --cov-report=html
+pytest backend/tests/test_security*.py -v -m security --cov=backend --cov-report=html --cov-fail-under=0
 ```
+
+**Note:** Security tests focus on verifying security mechanisms, not achieving full code coverage. The 90% coverage requirement in `pytest.ini` applies to the full test suite, not individual test categories. Use `--no-cov` or `--cov-fail-under=0` when running security tests alone.
 
 ## Test Categories
 
