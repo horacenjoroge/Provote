@@ -1,0 +1,229 @@
+"""
+Load tests for concurrent operations.
+"""
+
+import pytest
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+from apps.polls.factories import PollFactory, PollOptionFactory
+from apps.polls.models import Poll
+from apps.users.factories import UserFactory
+from apps.votes.services import cast_vote
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+@pytest.mark.slow
+class TestConcurrentLoad:
+    """Load tests for concurrent voting."""
+
+    def test_100_concurrent_votes(self, poll, choices):
+        """Test 100 concurrent votes from different users."""
+        users = [UserFactory() for _ in range(100)]
+        results = []
+        lock = threading.Lock()
+
+        def vote(user):
+            try:
+                vote, is_new = cast_vote(
+                    user=user,
+                    poll_id=poll.id,
+                    choice_id=choices[0].id,
+                )
+                with lock:
+                    results.append({"success": True, "user_id": user.id})
+            except Exception as e:
+                with lock:
+                    results.append({"success": False, "error": str(e)})
+
+        start_time = time.time()
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            futures = [executor.submit(vote, user) for user in users]
+            for future in futures:
+                future.result()
+        end_time = time.time()
+
+        # All should succeed
+        successful = [r for r in results if r["success"]]
+        assert len(successful) == 100
+
+        # Should complete in reasonable time
+        assert (end_time - start_time) < 30  # 30 seconds
+
+        # Verify database state
+        poll.refresh_from_db()
+        assert poll.cached_total_votes == 100
+
+    def test_50_concurrent_polls_and_votes(self, user):
+        """Test 50 concurrent poll creations and votes."""
+        poll_ids = []
+        results = []
+        lock = threading.Lock()
+
+        def create_and_vote():
+            try:
+                # Create poll
+                poll = PollFactory(created_by=user)
+                option1 = PollOptionFactory(poll=poll, text="Option 1", order=0)
+                option2 = PollOptionFactory(poll=poll, text="Option 2", order=1)
+
+                # Vote
+                vote, is_new = cast_vote(
+                    user=user,
+                    poll_id=poll.id,
+                    choice_id=option1.id,
+                )
+                with lock:
+                    poll_ids.append(poll.id)
+                    results.append({"success": True, "poll_id": poll.id})
+            except Exception as e:
+                with lock:
+                    results.append({"success": False, "error": str(e)})
+
+        start_time = time.time()
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            futures = [executor.submit(create_and_vote) for _ in range(50)]
+            for future in futures:
+                future.result()
+        end_time = time.time()
+
+        # All should succeed
+        successful = [r for r in results if r["success"]]
+        assert len(successful) == 50
+
+        # Should complete in reasonable time
+        assert (end_time - start_time) < 60  # 60 seconds
+
+        # Verify all polls and votes exist
+        for poll_id in poll_ids:
+            poll = Poll.objects.get(id=poll_id)
+            assert poll.votes.count() == 1
+
+    def test_200_concurrent_votes_mixed_options(self, poll, choices):
+        """Test 200 concurrent votes distributed across options."""
+        users = [UserFactory() for _ in range(200)]
+        results = []
+        lock = threading.Lock()
+
+        def vote(user, choice_index):
+            try:
+                vote, is_new = cast_vote(
+                    user=user,
+                    poll_id=poll.id,
+                    choice_id=choices[choice_index % len(choices)].id,
+                )
+                with lock:
+                    results.append({"success": True, "user_id": user.id, "choice": choice_index})
+            except Exception as e:
+                with lock:
+                    results.append({"success": False, "error": str(e)})
+
+        start_time = time.time()
+        with ThreadPoolExecutor(max_workers=25) as executor:
+            futures = [
+                executor.submit(vote, user, i) for i, user in enumerate(users)
+            ]
+            for future in futures:
+                future.result()
+        end_time = time.time()
+
+        # All should succeed
+        successful = [r for r in results if r["success"]]
+        assert len(successful) == 200
+
+        # Should complete in reasonable time
+        assert (end_time - start_time) < 60  # 60 seconds
+
+        # Verify database state
+        poll.refresh_from_db()
+        assert poll.cached_total_votes == 200
+        assert poll.cached_unique_voters == 200
+
+        # Verify votes distributed across options
+        for choice in choices:
+            choice.refresh_from_db()
+            assert choice.cached_vote_count > 0
+
+    def test_concurrent_votes_with_idempotency(self, poll, choices):
+        """Test concurrent votes with same idempotency key."""
+        user = UserFactory()
+        idempotency_key = f"load-test-key-{int(time.time())}"
+        results = []
+        lock = threading.Lock()
+
+        def vote_with_key():
+            try:
+                vote, is_new = cast_vote(
+                    user=user,
+                    poll_id=poll.id,
+                    choice_id=choices[0].id,
+                    idempotency_key=idempotency_key,
+                )
+                with lock:
+                    results.append({"success": True, "vote_id": vote.id, "is_new": is_new})
+            except Exception as e:
+                with lock:
+                    results.append({"success": False, "error": str(e)})
+
+        # Attempt 20 concurrent votes with same idempotency key
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            futures = [executor.submit(vote_with_key) for _ in range(20)]
+            for future in futures:
+                future.result()
+
+        # Only one should be new, rest should be idempotent
+        successful = [r for r in results if r["success"]]
+        assert len(successful) == 20
+
+        # All should return same vote ID
+        vote_ids = [r["vote_id"] for r in successful]
+        assert len(set(vote_ids)) == 1  # All same vote ID
+
+        # Only one should be marked as new
+        new_votes = [r for r in successful if r["is_new"]]
+        assert len(new_votes) == 1
+
+        # Verify only one vote in database
+        votes = Vote.objects.filter(poll=poll, user=user)
+        assert votes.count() == 1
+
+    def test_stress_test_500_votes(self, poll, choices):
+        """Stress test: 500 concurrent votes."""
+        users = [UserFactory() for _ in range(500)]
+        results = []
+        lock = threading.Lock()
+
+        def vote(user):
+            try:
+                vote, is_new = cast_vote(
+                    user=user,
+                    poll_id=poll.id,
+                    choice_id=choices[0].id,
+                )
+                with lock:
+                    results.append({"success": True, "user_id": user.id})
+            except Exception as e:
+                with lock:
+                    results.append({"success": False, "error": str(e)})
+
+        start_time = time.time()
+        with ThreadPoolExecutor(max_workers=50) as executor:
+            futures = [executor.submit(vote, user) for user in users]
+            for future in futures:
+                future.result()
+        end_time = time.time()
+
+        # All should succeed
+        successful = [r for r in results if r["success"]]
+        assert len(successful) == 500
+
+        # Should complete in reasonable time
+        assert (end_time - start_time) < 120  # 2 minutes
+
+        # Verify database state
+        poll.refresh_from_db()
+        assert poll.cached_total_votes == 500
+        assert poll.cached_unique_voters == 500
+
