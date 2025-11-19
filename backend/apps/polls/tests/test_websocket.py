@@ -14,6 +14,20 @@ from apps.votes.models import Vote
 from apps.votes.services import cast_vote
 
 
+def create_websocket_communicator(poll_id, user=None):
+    """Helper to create a WebSocket communicator with proper scope configuration."""
+    communicator = WebsocketCommunicator(
+        PollResultsConsumer.as_asgi(), f"/ws/polls/{poll_id}/results/"
+    )
+    if user:
+        communicator.scope["user"] = user
+    # Add url_route information that the consumer expects
+    communicator.scope["url_route"] = {
+        "kwargs": {"poll_id": poll_id}
+    }
+    return communicator
+
+
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 class TestWebSocketConnection:
@@ -26,14 +40,12 @@ class TestWebSocketConnection:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
-        )
         # Use unique username to avoid conflicts
         unique_username = f"testuser_{int(time.time() * 1000000)}"
-        communicator.scope["user"] = await database_sync_to_async(User.objects.create_user)(
+        user = await database_sync_to_async(User.objects.create_user)(
             username=unique_username, password="testpass"
         )
+        communicator = create_websocket_communicator(poll.id, user)
 
         connected, subprotocol = await communicator.connect()
 
@@ -56,13 +68,10 @@ class TestWebSocketConnection:
 
         # Create non-owner user
         other_user = await database_sync_to_async(User.objects.create_user)(
-            username="otheruser", password="testpass"
+            username=f"otheruser_{int(time.time() * 1000000)}", password="testpass"
         )
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
-        )
-        communicator.scope["user"] = other_user
+        communicator = create_websocket_communicator(poll.id, other_user)
 
         connected, subprotocol = await communicator.connect()
 
@@ -76,10 +85,7 @@ class TestWebSocketConnection:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
-        )
-        communicator.scope["user"] = poll.created_by
+        communicator = create_websocket_communicator(poll.id, poll.created_by)
 
         connected, subprotocol = await communicator.connect()
 
@@ -89,12 +95,11 @@ class TestWebSocketConnection:
 
     async def test_websocket_connection_rejected_for_nonexistent_poll(self):
         """Test that WebSocket connection is rejected for nonexistent poll."""
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), "/ws/polls/99999/results/"
+        import time
+        user = await database_sync_to_async(User.objects.create_user)(
+            username=f"testuser_{int(time.time() * 1000000)}", password="testpass"
         )
-        communicator.scope["user"] = await database_sync_to_async(User.objects.create_user)(
-            username="testuser", password="testpass"
-        )
+        communicator = create_websocket_communicator(99999, user)
 
         connected, subprotocol = await communicator.connect()
 
@@ -112,12 +117,11 @@ class TestWebSocketSubscription:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
+        import time
+        user = await database_sync_to_async(User.objects.create_user)(
+            username=f"testuser_{int(time.time() * 1000000)}", password="testpass"
         )
-        communicator.scope["user"] = await database_sync_to_async(User.objects.create_user)(
-            username="testuser", password="testpass"
-        )
+        communicator = create_websocket_communicator(poll.id, user)
 
         connected, subprotocol = await communicator.connect()
         assert connected is True
@@ -137,12 +141,11 @@ class TestWebSocketSubscription:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
+        import time
+        user = await database_sync_to_async(User.objects.create_user)(
+            username=f"testuser_{int(time.time() * 1000000)}", password="testpass"
         )
-        communicator.scope["user"] = await database_sync_to_async(User.objects.create_user)(
-            username="testuser", password="testpass"
-        )
+        communicator = create_websocket_communicator(poll.id, user)
 
         connected, subprotocol = await communicator.connect()
         assert connected is True
@@ -162,12 +165,11 @@ class TestWebSocketSubscription:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
+        import time
+        user = await database_sync_to_async(User.objects.create_user)(
+            username=f"testuser_{int(time.time() * 1000000)}", password="testpass"
         )
-        communicator.scope["user"] = await database_sync_to_async(User.objects.create_user)(
-            username="testuser", password="testpass"
-        )
+        communicator = create_websocket_communicator(poll.id, user)
 
         connected, subprotocol = await communicator.connect()
         assert connected is True
@@ -198,14 +200,12 @@ class TestWebSocketUpdates:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
+        import time
         user = await database_sync_to_async(User.objects.create_user)(
-            username="testuser", password="testpass"
+            username=f"testuser_{int(time.time() * 1000000)}", password="testpass"
         )
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
-        )
-        communicator.scope["user"] = user
+        communicator = create_websocket_communicator(poll.id, user)
 
         connected, subprotocol = await communicator.connect()
         assert connected is True
@@ -242,23 +242,18 @@ class TestWebSocketUpdates:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
+        import time
+        timestamp = int(time.time() * 1000000)
         user1 = await database_sync_to_async(User.objects.create_user)(
-            username="user1", password="testpass"
+            username=f"user1_{timestamp}", password="testpass"
         )
         user2 = await database_sync_to_async(User.objects.create_user)(
-            username="user2", password="testpass"
+            username=f"user2_{timestamp}", password="testpass"
         )
 
         # Create two WebSocket connections
-        communicator1 = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
-        )
-        communicator1.scope["user"] = user1
-
-        communicator2 = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
-        )
-        communicator2.scope["user"] = user2
+        communicator1 = create_websocket_communicator(poll.id, user1)
+        communicator2 = create_websocket_communicator(poll.id, user2)
 
         connected1, _ = await communicator1.connect()
         connected2, _ = await communicator2.connect()
@@ -306,12 +301,11 @@ class TestWebSocketDisconnection:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
+        import time
+        user = await database_sync_to_async(User.objects.create_user)(
+            username=f"testuser_{int(time.time() * 1000000)}", password="testpass"
         )
-        communicator.scope["user"] = await database_sync_to_async(User.objects.create_user)(
-            username="testuser", password="testpass"
-        )
+        communicator = create_websocket_communicator(poll.id, user)
 
         connected, subprotocol = await communicator.connect()
         assert connected is True
@@ -327,23 +321,18 @@ class TestWebSocketDisconnection:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
+        import time
+        timestamp = int(time.time() * 1000000)
         user1 = await database_sync_to_async(User.objects.create_user)(
-            username="user1", password="testpass"
+            username=f"user1_{timestamp}", password="testpass"
         )
         user2 = await database_sync_to_async(User.objects.create_user)(
-            username="user2", password="testpass"
+            username=f"user2_{timestamp}", password="testpass"
         )
 
         # Create two connections
-        communicator1 = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
-        )
-        communicator1.scope["user"] = user1
-
-        communicator2 = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
-        )
-        communicator2.scope["user"] = user2
+        communicator1 = create_websocket_communicator(poll.id, user1)
+        communicator2 = create_websocket_communicator(poll.id, user2)
 
         connected1, _ = await communicator1.connect()
         connected2, _ = await communicator2.connect()
@@ -393,12 +382,11 @@ class TestWebSocketErrorHandling:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
+        import time
+        user = await database_sync_to_async(User.objects.create_user)(
+            username=f"testuser_{int(time.time() * 1000000)}", password="testpass"
         )
-        communicator.scope["user"] = await database_sync_to_async(User.objects.create_user)(
-            username="testuser", password="testpass"
-        )
+        communicator = create_websocket_communicator(poll.id, user)
 
         connected, subprotocol = await communicator.connect()
         assert connected is True
@@ -421,12 +409,11 @@ class TestWebSocketErrorHandling:
         poll.settings["show_results_during_voting"] = True
         await database_sync_to_async(poll.save)()
 
-        communicator = WebsocketCommunicator(
-            PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
+        import time
+        user = await database_sync_to_async(User.objects.create_user)(
+            username=f"testuser_{int(time.time() * 1000000)}", password="testpass"
         )
-        communicator.scope["user"] = await database_sync_to_async(User.objects.create_user)(
-            username="testuser", password="testpass"
-        )
+        communicator = create_websocket_communicator(poll.id, user)
 
         connected, subprotocol = await communicator.connect()
         assert connected is True
@@ -469,10 +456,7 @@ class TestWebSocketLoad:
         # Create 1000 WebSocket connections
         communicators = []
         for user in users:
-            communicator = WebsocketCommunicator(
-                PollResultsConsumer.as_asgi(), f"/ws/polls/{poll.id}/results/"
-            )
-            communicator.scope["user"] = user
+            communicator = create_websocket_communicator(poll.id, user)
             communicators.append(communicator)
 
         # Connect all

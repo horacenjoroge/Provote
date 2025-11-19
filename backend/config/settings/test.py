@@ -75,5 +75,12 @@ CACHES = {
 CELERY_BROKER_URL = "memory://"
 CELERY_RESULT_BACKEND = "cache+memory://"
 
+# Override Channels configuration for tests (use in-memory channel layer)
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
+
 # Static directory will be created by the workflow
 # This is handled in .github/workflows/test.yml
