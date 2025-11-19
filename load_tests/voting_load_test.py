@@ -33,7 +33,10 @@ class VotingUser(HttpUser):
         """Initialize with load test header to bypass rate limiting."""
         super().__init__(*args, **kwargs)
         # Add header to bypass rate limiting during load tests
-        self.client.headers.update({"X-Load-Test": "true"})
+        # Note: Locust's client.headers is a dict that persists across requests
+        if not hasattr(self.client, 'headers') or self.client.headers is None:
+            self.client.headers = {}
+        self.client.headers["X-Load-Test"] = "true"
     
     def on_start(self):
         """Called when a simulated user starts."""
@@ -57,7 +60,7 @@ class VotingUser(HttpUser):
                     if poll_id:
                         self.poll_ids.append(poll_id)
                         # Get poll details to get options
-                        poll_detail = self.client.get(f"/api/v1/polls/{poll_id}/", catch_response=True)
+                        poll_detail = self.client.get(f"/api/v1/polls/{poll_id}/", headers=headers, catch_response=True)
                         if poll_detail.status_code == 200:
                             poll_data = poll_detail.json()
                             options = poll_data.get("options", [])
@@ -160,7 +163,10 @@ class HighVolumeVotingUser(FastHttpUser):
         """Initialize with load test header to bypass rate limiting."""
         super().__init__(*args, **kwargs)
         # Add header to bypass rate limiting during load tests
-        self.client.headers.update({"X-Load-Test": "true"})
+        # Note: Locust's client.headers is a dict that persists across requests
+        if not hasattr(self.client, 'headers') or self.client.headers is None:
+            self.client.headers = {}
+        self.client.headers["X-Load-Test"] = "true"
     
     def on_start(self):
         """Set up user for high-volume voting."""
@@ -174,14 +180,15 @@ class HighVolumeVotingUser(FastHttpUser):
         
         # Pre-load a single poll for fast voting
         try:
-            response = self.client.get("/api/v1/polls/")
+            headers = {"X-Load-Test": "true"}
+            response = self.client.get("/api/v1/polls/", headers=headers)
             if response.status_code == 200:
                 polls = response.json().get("results", response.json())
                 if polls and len(polls) > 0:
                     poll = polls[0]
                     self.poll_id = poll.get("id")
                     if self.poll_id:
-                        poll_detail = self.client.get(f"/api/v1/polls/{self.poll_id}/")
+                        poll_detail = self.client.get(f"/api/v1/polls/{self.poll_id}/", headers=headers)
                         if poll_detail.status_code == 200:
                             options = poll_detail.json().get("options", [])
                             self.option_ids = [opt["id"] for opt in options] if options else []
