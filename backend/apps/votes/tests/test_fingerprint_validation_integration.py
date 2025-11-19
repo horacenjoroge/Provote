@@ -215,13 +215,19 @@ class TestFingerprintValidationInVoteCasting:
         assert is_new2 is False
 
     def test_legitimate_fingerprint_change_allowed(self, user, poll, choices):
-        """Test that legitimate fingerprint changes are allowed."""
+        """Test that legitimate fingerprint changes are allowed (on different polls)."""
         from apps.votes.models import Vote
         from datetime import timedelta
+        from apps.polls.factories import PollFactory, PollOptionFactory
 
         factory = RequestFactory()
 
-        # Create old vote with first fingerprint
+        # Create a second poll for testing fingerprint change
+        poll2 = PollFactory(created_by=user, is_active=True)
+        choice2 = PollOptionFactory(poll=poll2, text="Option 1")
+        choice2_2 = PollOptionFactory(poll=poll2, text="Option 2")
+
+        # Create old vote with first fingerprint on first poll
         old_time = timezone.now() - timedelta(days=2)
         Vote.objects.create(
             user=user,
@@ -234,7 +240,7 @@ class TestFingerprintValidationInVoteCasting:
             created_at=old_time,
         )
 
-        # Cast vote with different fingerprint (should be OK - old vote is outside time window)
+        # Cast vote on different poll with different fingerprint (should be OK)
         request = factory.post("/api/votes/cast/")
         fingerprint = make_fingerprint("new_fp")
         request.fingerprint = fingerprint
@@ -242,12 +248,12 @@ class TestFingerprintValidationInVoteCasting:
 
         vote, is_new = cast_vote(
             user=user,
-            poll_id=poll.id,
-            choice_id=choices[1].id,
+            poll_id=poll2.id,
+            choice_id=choice2.id,
             request=request,
         )
 
-        # Should succeed (legitimate change)
+        # Should succeed (legitimate change on different poll)
         assert vote is not None
         assert is_new is True
         assert vote.fingerprint == fingerprint

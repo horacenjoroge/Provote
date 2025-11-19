@@ -32,16 +32,16 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        # Mock IP address
-        with patch("core.utils.idempotency.extract_ip_address", return_value="192.168.1.100"):
-            response = client.post(
-                "/api/v1/votes/cast/",
-                {
-                    "poll_id": poll.id,
-                    "choice_id": choices[0].id,
-                },
-                format="json"
-            )
+        # Set IP address in request META
+        response = client.post(
+            "/api/v1/votes/cast/",
+            {
+                "poll_id": poll.id,
+                "choice_id": choices[0].id,
+            },
+            format="json",
+            REMOTE_ADDR="192.168.1.100"
+        )
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data["error_code"] == "IPBlockedError"
@@ -72,15 +72,15 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        with patch("core.utils.idempotency.extract_ip_address", return_value="192.168.1.101"):
-            response = client.post(
-                "/api/v1/votes/cast/",
-                {
-                    "poll_id": poll.id,
-                    "choice_id": choices[0].id,
-                },
-                format="json"
-            )
+        response = client.post(
+            "/api/v1/votes/cast/",
+            {
+                "poll_id": poll.id,
+                "choice_id": choices[0].id,
+            },
+            format="json",
+            REMOTE_ADDR="192.168.1.101"
+        )
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -111,15 +111,15 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        with patch("core.utils.idempotency.extract_ip_address", return_value="192.168.1.102"):
-            response = client.post(
-                "/api/v1/votes/cast/",
-                {
-                    "poll_id": poll.id,
-                    "choice_id": choices[0].id,
-                },
-                format="json"
-            )
+        response = client.post(
+            "/api/v1/votes/cast/",
+            {
+                "poll_id": poll.id,
+                "choice_id": choices[0].id,
+            },
+            format="json",
+            REMOTE_ADDR="192.168.1.102"
+        )
         
         # Should succeed (may be 201, 200, or 409 depending on vote status)
         assert response.status_code in [201, 200, 409]
@@ -146,15 +146,15 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        with patch("core.utils.idempotency.extract_ip_address", return_value="192.168.1.103"):
-            response = client.post(
-                "/api/v1/votes/cast/",
-                {
-                    "poll_id": poll.id,
-                    "choice_id": choices[0].id,
-                },
-                format="json"
-            )
+        response = client.post(
+            "/api/v1/votes/cast/",
+            {
+                "poll_id": poll.id,
+                "choice_id": choices[0].id,
+            },
+            format="json",
+            REMOTE_ADDR="192.168.1.103"
+        )
         
         # Should succeed
         assert response.status_code in [201, 200, 409]
@@ -184,15 +184,15 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        with patch("core.utils.idempotency.extract_ip_address", return_value="192.168.1.104"):
-            response = client.post(
-                "/api/v1/votes/cast/",
-                {
-                    "poll_id": poll.id,
-                    "choice_id": choices[0].id,
-                },
-                format="json"
-            )
+        response = client.post(
+            "/api/v1/votes/cast/",
+            {
+                "poll_id": poll.id,
+                "choice_id": choices[0].id,
+            },
+            format="json",
+            REMOTE_ADDR="192.168.1.104"
+        )
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
         
@@ -205,15 +205,15 @@ class TestIPReputationIntegration:
         assert is_blocked is False
         
         # Should be able to vote now
-        with patch("core.utils.idempotency.extract_ip_address", return_value="192.168.1.104"):
-            response = client.post(
-                "/api/v1/votes/cast/",
-                {
-                    "poll_id": poll.id,
-                    "choice_id": choices[0].id,
-                },
-                format="json"
-            )
+        response = client.post(
+            "/api/v1/votes/cast/",
+            {
+                "poll_id": poll.id,
+                "choice_id": choices[0].id,
+            },
+            format="json",
+            REMOTE_ADDR="192.168.1.104"
+        )
         
         # Should succeed
         assert response.status_code in [201, 200, 409]
@@ -233,15 +233,15 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        with patch("core.utils.idempotency.extract_ip_address", return_value=ip_address):
-            response = client.post(
-                "/api/v1/votes/cast/",
-                {
-                    "poll_id": poll.id,
-                    "choice_id": choices[0].id,
-                },
-                format="json"
-            )
+        response = client.post(
+            "/api/v1/votes/cast/",
+            {
+                "poll_id": poll.id,
+                "choice_id": choices[0].id,
+            },
+            format="json",
+            REMOTE_ADDR=ip_address
+        )
         
         # Check reputation updated
         reputation.refresh_from_db()
