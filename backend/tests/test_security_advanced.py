@@ -23,6 +23,21 @@ from apps.analytics.models import AuditLog
 User = get_user_model()
 
 
+# Additional fixtures for advanced security tests
+@pytest.fixture
+def client():
+    """Create a Django test client."""
+    from django.test import Client
+    return Client()
+
+
+@pytest.fixture
+def poll_option(db, poll):
+    """Create a poll option for testing."""
+    from apps.polls.factories import PollOptionFactory
+    return PollOptionFactory(poll=poll)
+
+
 @pytest.mark.django_db
 @pytest.mark.security
 class TestPathTraversalProtection:

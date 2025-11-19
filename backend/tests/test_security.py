@@ -33,6 +33,12 @@ User = get_user_model()
 
 # Additional fixtures for security tests
 @pytest.fixture
+def client():
+    """Create a Django test client."""
+    return Client()
+
+
+@pytest.fixture
 def poll_option(db, poll):
     """Create a poll option for testing."""
     from apps.polls.factories import PollOptionFactory
