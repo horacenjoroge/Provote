@@ -1,0 +1,11 @@
+# Load test results
+load_test_results/
+*.html
+*.csv
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
