@@ -103,7 +103,11 @@ class TestPeriodicPatternAnalysis:
         poll2.id = 2
         poll2.title = "Poll 2"
 
-        mock_poll.objects.filter.return_value = [poll1, poll2]
+        # Create a QuerySet-like mock that supports iteration and count()
+        mock_queryset = MagicMock()
+        mock_queryset.__iter__ = MagicMock(return_value=iter([poll1, poll2]))
+        mock_queryset.count = MagicMock(return_value=2)
+        mock_poll.objects.filter.return_value = mock_queryset
 
         # Mock analyze results
         def analyze_side_effect(poll_id, time_window_hours):
@@ -140,7 +144,11 @@ class TestPeriodicPatternAnalysis:
         poll.id = 1
         poll.title = "Poll 1"
 
-        mock_poll.objects.filter.return_value = [poll]
+        # Create a QuerySet-like mock that supports iteration and count()
+        mock_queryset = MagicMock()
+        mock_queryset.__iter__ = MagicMock(return_value=iter([poll]))
+        mock_queryset.count = MagicMock(return_value=1)
+        mock_poll.objects.filter.return_value = mock_queryset
         mock_analyze.side_effect = Exception("Test error")
 
         result = periodic_pattern_analysis()
@@ -160,7 +168,11 @@ class TestPeriodicPatternAnalysis:
         poll.id = 1
         poll.title = "Poll 1"
 
-        mock_poll.objects.filter.return_value = [poll]
+        # Create a QuerySet-like mock that supports iteration and count()
+        mock_queryset = MagicMock()
+        mock_queryset.__iter__ = MagicMock(return_value=iter([poll]))
+        mock_queryset.count = MagicMock(return_value=1)
+        mock_poll.objects.filter.return_value = mock_queryset
 
         mock_analyze.return_value = {
             "poll_id": 1,

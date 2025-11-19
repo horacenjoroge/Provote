@@ -163,7 +163,7 @@ def cast_vote(
 
     # Generate voter token
     voter_token = generate_voter_token(
-        user_id=user.id if user else None,
+        user_id=user.id if user and user.is_authenticated else None,
         ip_address=ip_address,
         user_agent=user_agent,
         fingerprint=fingerprint,
@@ -222,7 +222,20 @@ def cast_vote(
 
         # Step 4: Voter validation
         # Check if user has already voted on this poll (with lock)
-        existing_vote = Vote.objects.select_for_update().filter(user=user, poll=poll).first()
+        # For anonymous users, check by voter_token instead
+        if user and user.is_authenticated:
+            existing_vote = Vote.objects.select_for_update().filter(user=user, poll=poll).first()
+        else:
+            # Anonymous user - check by voter_token (will be set after generation)
+            existing_vote = None
+        
+        # Re-check after voter_token is generated for anonymous users
+        if not existing_vote and not (user and user.is_authenticated):
+            # For anonymous users, check by idempotency_key which includes fingerprint+IP
+            existing_vote = Vote.objects.select_for_update().filter(
+                idempotency_key=idempotency_key, poll=poll
+            ).first()
+        
         if existing_vote:
             # Record IP violation for duplicate vote attempt
             if ip_address:
@@ -275,7 +288,7 @@ def cast_vote(
                 validation_result = check_fingerprint_suspicious(
                     fingerprint=fingerprint,
                     poll_id=poll_id,
-                    user_id=user.id if user else None,
+                    user_id=user.id if user and user.is_authenticated else None,
                     ip_address=ip_address,
                     request=request,
                 )
@@ -335,7 +348,7 @@ def cast_vote(
                 # Log warning if suspicious but not blocking
                 if validation_result.get("suspicious", False):
                     logger.warning(
-                        f"Suspicious fingerprint detected for user {user.id if user else 'anonymous'}, poll {poll_id}: "
+                        f"Suspicious fingerprint detected for user {user.id if user and user.is_authenticated else 'anonymous'}, poll {poll_id}: "
                         f"{', '.join(validation_result.get('reasons', []))}"
                     )
 
@@ -357,7 +370,7 @@ def cast_vote(
             fingerprint_missing = True
             fraud_reasons_list.append("Missing browser fingerprint")
             logger.warning(
-                f"Vote from user {user.id if user else 'anonymous'} (IP: {ip_address}) missing fingerprint"
+                f"Vote from user {user.id if user and user.is_authenticated else 'anonymous'} (IP: {ip_address}) missing fingerprint"
             )
 
         # Step 7: Fraud detection
@@ -381,8 +394,10 @@ def cast_vote(
         )
 
         # Step 8: Create vote atomically
+        # For anonymous users, user is None (Vote.user now allows null)
+        vote_user = user if user and user.is_authenticated else None
         vote = Vote.objects.create(
-            user=user,
+            user=vote_user,
             option=option,
             poll=poll,
             idempotency_key=idempotency_key,
@@ -403,7 +418,7 @@ def cast_vote(
                     reasons=fraud_result["reasons"],
                     risk_score=fraud_result["risk_score"],
                     poll_id=poll_id,
-                    user_id=user.id if user else None,
+                    user_id=user.id if user and user.is_authenticated else None,
                     ip_address=ip_address,
                 )
                 
@@ -441,7 +456,7 @@ def cast_vote(
                 update_fingerprint_cache(
                     fingerprint=fingerprint,
                     poll_id=poll_id,
-                    user_id=user.id,
+                    user_id=user.id if user and user.is_authenticated else None,
                     ip_address=ip_address,
                 )
             except Exception as e:
@@ -483,7 +498,7 @@ def cast_vote(
 
         # Step 13: Audit logging
         VoteAttempt.objects.create(
-            user=user,
+            user=user if user and user.is_authenticated else None,
             poll=poll,
             option=option,
             voter_token=voter_token,
@@ -494,7 +509,7 @@ def cast_vote(
             success=True,
         )
 
-        logger.info(f"Vote created successfully: vote_id={vote.id}, poll_id={poll_id}, user_id={user.id}")
+        logger.info(f"Vote created successfully: vote_id={vote.id}, poll_id={poll_id}, user_id={user.id if user and user.is_authenticated else None}")
         
         # Record successful IP activity
         if ip_address:

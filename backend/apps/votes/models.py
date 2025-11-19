@@ -10,7 +10,7 @@ from django.db import models
 class Vote(models.Model):
     """Model representing a vote on a poll option with idempotency and tracking."""
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="votes")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="votes", null=True, blank=True)
     option = models.ForeignKey(PollOption, on_delete=models.CASCADE, related_name="votes")
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="votes")
     # Voter identification
@@ -39,7 +39,12 @@ class Vote(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [["user", "poll"]]
+        # Note: unique_together with nullable user field requires special handling
+        # For anonymous votes (user=None), uniqueness is enforced by idempotency_key
+        # For authenticated votes, uniqueness is enforced by user+poll
+        constraints = [
+            models.UniqueConstraint(fields=["user", "poll"], condition=models.Q(user__isnull=False), name="unique_user_poll"),
+        ]
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["poll", "voter_token"]),  # For poll + voter_token lookups
