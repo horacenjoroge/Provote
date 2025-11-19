@@ -72,10 +72,11 @@ class IPReputationFactory(factory.django.DjangoModelFactory):
         model = IPReputation
 
     ip_address = factory.Faker("ipv4")
-    score = 50
+    reputation_score = 50
     violation_count = 0
+    successful_attempts = 0
+    failed_attempts = 0
     last_violation_at = None
-    last_success_at = factory.LazyFunction(lambda: factory.Faker().date_time())
 
 
 class IPBlockFactory(factory.django.DjangoModelFactory):
