@@ -28,6 +28,15 @@ class RateLimitMiddleware(MiddlewareMixin):
         if request.path.startswith(("/admin/", "/static/", "/media/")):
             return self.get_response(request)
 
+        # Bypass rate limiting for load tests
+        from django.conf import settings
+        if getattr(settings, 'DISABLE_RATE_LIMITING', False):
+            return self.get_response(request)
+        
+        # Check for load test header (allows bypassing rate limits for load tests)
+        if request.META.get('HTTP_X_LOAD_TEST') == 'true':
+            return self.get_response(request)
+
         # Get identifiers
         ip_address = self.get_client_ip(request)
         user_id = (
