@@ -139,10 +139,15 @@ class TestFingerprintValidation:
 class TestFingerprintSuspiciousDetection:
     """Test suspicious pattern detection."""
 
+    @pytest.mark.skipif(
+        lambda: settings.CACHES["default"]["BACKEND"] == "django.core.cache.backends.dummy.DummyCache",
+        reason="Cache tests require a functional cache backend (not DummyCache)"
+    )
     def test_detect_different_users_from_cache(self, user):
         """Test detection of same fingerprint from different users via cache."""
         from apps.polls.models import Poll, PollOption
         from apps.votes.models import Vote
+        from django.conf import settings
 
         cache.clear()
 

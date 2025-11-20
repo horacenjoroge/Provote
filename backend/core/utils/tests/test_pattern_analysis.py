@@ -328,11 +328,16 @@ class TestPatternAnalysisIntegration:
         import uuid
         user = User.objects.create_user(username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass")
 
+        # Ensure poll is active for pattern analysis
+        poll.is_active = True
+        poll.save()
+        
         # Create suspicious pattern: single IP, single option, clustered in time
+        # Use anonymous votes to avoid unique constraint (one vote per user per poll)
         with freeze_time("2024-01-01 10:00:00"):
             for i in range(10):
                 Vote.objects.create(
-                    user=user,
+                    user=None,  # Anonymous votes to avoid unique constraint
                     poll=poll,
                     option=choices[0],
                     ip_address="192.168.1.1",
@@ -341,7 +346,9 @@ class TestPatternAnalysisIntegration:
                     idempotency_key=f"key{i}",
                 )
 
-        results = analyze_vote_patterns(poll_id=poll.id, time_window_hours=24)
+        # Use freeze_time to ensure votes are within the time window
+        with freeze_time("2024-01-01 10:05:00"):
+            results = analyze_vote_patterns(poll_id=poll.id, time_window_hours=24)
 
         assert results["total_suspicious_patterns"] > 0
         assert results["highest_risk_score"] > 0

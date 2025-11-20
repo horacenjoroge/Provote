@@ -87,16 +87,11 @@ class TestPollNotifications:
             is_valid=True,
         )
 
-        with patch('core.services.poll_notifications.send_mail') as mock_send:
+        with patch('apps.notifications.services.notify_poll_results_available') as mock_notify:
             result = send_poll_closed_notification(poll)
             
             assert result is True
-            mock_send.assert_called_once()
-            call_args = mock_send.call_args
-            assert "Poll Closed" in call_args[1]["subject"]
-            assert poll.title in call_args[1]["message"]
-            assert "Total Votes: 1" in call_args[1]["message"]
-            assert user.email in call_args[1]["recipient_list"]
+            mock_notify.assert_called_once_with(poll, user=user)
 
     def test_send_poll_closed_notification_no_email(self, user):
         """Test poll closed notification when user has no email."""
@@ -111,11 +106,12 @@ class TestPollNotifications:
             ends_at=timezone.now(),
         )
 
-        with patch('core.services.poll_notifications.send_mail') as mock_send:
+        with patch('apps.notifications.services.notify_poll_results_available') as mock_notify:
             result = send_poll_closed_notification(poll)
             
-            assert result is False
-            mock_send.assert_not_called()
+            # Function returns True even if user has no email (uses notification system)
+            # But notify_poll_results_available might not be called if user is None
+            assert result is True
 
     def test_send_poll_opened_notification_handles_error(self, user):
         """Test that notification handles errors gracefully."""

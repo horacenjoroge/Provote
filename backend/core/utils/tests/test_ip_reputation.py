@@ -147,10 +147,12 @@ class TestIPBlocking:
         is_blocked, _ = is_ip_blocked("192.168.1.3")
         assert is_blocked is False
 
+    @pytest.mark.django_db
     def test_block_ip_manual(self):
         """Test manual IP blocking."""
-        user = Mock()
-        user.id = 1
+        from django.contrib.auth.models import User
+        
+        user = User.objects.create_user(username="blocker", password="pass")
         
         block = block_ip(
             ip_address="192.168.1.4",
