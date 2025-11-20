@@ -189,10 +189,12 @@ class TestIPWhitelist:
         """Test checking non-whitelisted IP."""
         assert is_ip_whitelisted("192.168.1.1") is False
 
+    @pytest.mark.django_db
     def test_whitelist_ip(self):
         """Test whitelisting an IP."""
-        user = Mock()
-        user.id = 1
+        from django.contrib.auth.models import User
+        
+        user = User.objects.create_user(username="whitelister", password="pass")
         
         whitelist = whitelist_ip(
             ip_address="192.168.1.1",
@@ -311,10 +313,12 @@ class TestAutoUnblock:
         block.refresh_from_db()
         assert block.is_active is True
 
+    @pytest.mark.django_db
     def test_auto_unblock_manual_blocks(self):
         """Test that manual blocks are not auto-unblocked."""
-        user = Mock()
-        user.id = 1
+        from django.contrib.auth.models import User
+        
+        user = User.objects.create_user(username="blocker", password="pass")
         
         block = block_ip(
             ip_address="192.168.1.3",

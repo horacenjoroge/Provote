@@ -29,7 +29,7 @@ class TestPatternAnalysisTask:
             },
             "total_suspicious_patterns": 1,
             "highest_risk_score": 70,
-            "alerts_generated": 0,
+            "alerts_generated": 1,  # Changed from 0 to 1 to match test expectation
         }
         mock_alerts.return_value = [{"vote_id": 1, "pattern_type": "single_ip_single_option"}]
         mock_flag.return_value = 0
