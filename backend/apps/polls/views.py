@@ -610,12 +610,20 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
             return Response(json_data, status=status.HTTP_200_OK)
         
         elif export_format == "pdf":
-            pdf_buffer = export_poll_results_pdf(poll.id)
-            from django.http import HttpResponse
-            
-            response = HttpResponse(pdf_buffer.getvalue(), content_type="application/pdf")
-            response["Content-Disposition"] = f'attachment; filename="poll_{poll.id}_results.pdf"'
-            return response
+            try:
+                pdf_buffer = export_poll_results_pdf(poll.id)
+                from django.http import HttpResponse
+                
+                response = HttpResponse(pdf_buffer.getvalue(), content_type="application/pdf")
+                response["Content-Disposition"] = f'attachment; filename="poll_{poll.id}_results.pdf"'
+                return response
+            except ImportError as e:
+                if "reportlab" in str(e).lower():
+                    return Response(
+                        {"error": "PDF export requires reportlab. Install with: pip install reportlab"},
+                        status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    )
+                raise
             
         else:
             return Response(
@@ -931,19 +939,63 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
         
         if start_date_str:
             try:
-                start_date = datetime.fromisoformat(start_date_str.replace("Z", "+00:00"))
-            except ValueError:
+                # Handle Z timezone indicator
+                date_to_parse = start_date_str.replace("Z", "+00:00") if "Z" in start_date_str else start_date_str
+                
+                # Try to parse ISO format (handles both with and without timezone, with or without microseconds)
+                try:
+                    start_date = datetime.fromisoformat(date_to_parse)
+                except ValueError:
+                    # If parsing fails, try removing microseconds
+                    if '.' in date_to_parse and '+' in date_to_parse:
+                        # Format: YYYY-MM-DDTHH:MM:SS.microseconds+00:00
+                        parts = date_to_parse.split('+')
+                        date_part = parts[0].split('.')[0]  # Remove microseconds
+                        tz_part = '+' + parts[1] if len(parts) > 1 else ''
+                        date_to_parse = date_part + tz_part
+                    elif '.' in date_to_parse:
+                        # Format: YYYY-MM-DDTHH:MM:SS.microseconds
+                        date_to_parse = date_to_parse.split('.')[0]
+                    start_date = datetime.fromisoformat(date_to_parse)
+                
+                # Make timezone-aware if naive
+                from django.utils import timezone
+                if timezone.is_naive(start_date):
+                    start_date = timezone.make_aware(start_date)
+            except (ValueError, AttributeError, TypeError) as e:
                 return Response(
-                    {"error": "Invalid start_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)"},
+                    {"error": f"Invalid start_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS). Received: {start_date_str[:50]}. Error: {str(e)}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         
         if end_date_str:
             try:
-                end_date = datetime.fromisoformat(end_date_str.replace("Z", "+00:00"))
-            except ValueError:
+                # Handle Z timezone indicator
+                date_to_parse = end_date_str.replace("Z", "+00:00") if "Z" in end_date_str else end_date_str
+                
+                # Try to parse ISO format (handles both with and without timezone, with or without microseconds)
+                try:
+                    end_date = datetime.fromisoformat(date_to_parse)
+                except ValueError:
+                    # If parsing fails, try removing microseconds
+                    if '.' in date_to_parse and '+' in date_to_parse:
+                        # Format: YYYY-MM-DDTHH:MM:SS.microseconds+00:00
+                        parts = date_to_parse.split('+')
+                        date_part = parts[0].split('.')[0]  # Remove microseconds
+                        tz_part = '+' + parts[1] if len(parts) > 1 else ''
+                        date_to_parse = date_part + tz_part
+                    elif '.' in date_to_parse:
+                        # Format: YYYY-MM-DDTHH:MM:SS.microseconds
+                        date_to_parse = date_to_parse.split('.')[0]
+                    end_date = datetime.fromisoformat(date_to_parse)
+                
+                # Make timezone-aware if naive
+                from django.utils import timezone
+                if timezone.is_naive(end_date):
+                    end_date = timezone.make_aware(end_date)
+            except (ValueError, AttributeError, TypeError) as e:
                 return Response(
-                    {"error": "Invalid end_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS)"},
+                    {"error": f"Invalid end_date format. Use ISO format (YYYY-MM-DDTHH:MM:SS). Received: {end_date_str[:50]}. Error: {str(e)}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
         
