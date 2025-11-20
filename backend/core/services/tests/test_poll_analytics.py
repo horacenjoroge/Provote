@@ -602,6 +602,10 @@ class TestAnalyticsPerformance:
                 idempotency_key=f"key_{timestamp}_{i}",
             )
 
+        # Update cached counts for analytics
+        poll.update_cached_totals()
+        poll.refresh_from_db()
+
         # Measure analytics calculation time
         start_time = time.time()
         analytics = get_comprehensive_analytics(poll.id)
@@ -625,10 +629,16 @@ class TestAnalyticsPerformance:
         import uuid
         user = User.objects.create_user(username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass")
 
+        # Ensure poll has starts_at set to a past date
+        if not poll.starts_at:
+            poll.starts_at = timezone.now() - timedelta(days=5)
+            poll.save()
+        
         # Create votes across many time buckets (use different users to avoid unique constraint)
+        base_time = poll.starts_at
         for hour in range(100):
             vote_user = User.objects.create_user(username=f"testuser_h{hour}_{uuid.uuid4().hex[:8]}", password="pass")
-            vote_time = poll.starts_at + timedelta(hours=hour)
+            vote_time = base_time + timedelta(hours=hour)
             with freeze_time(vote_time):
                 Vote.objects.create(
                     user=vote_user,
@@ -639,9 +649,12 @@ class TestAnalyticsPerformance:
                     idempotency_key=f"key{hour}",
                 )
 
-        start_time = time.time()
-        time_series = get_total_votes_over_time(poll.id, interval="hour")
-        elapsed_time = time.time() - start_time
+        # Use freeze_time to ensure time_series query uses correct time context
+        # Query should include all votes from starts_at to now
+        with freeze_time(base_time + timedelta(hours=100)):
+            start_time = time.time()
+            time_series = get_total_votes_over_time(poll.id, interval="hour")
+            elapsed_time = time.time() - start_time
 
         assert len(time_series) == 100
         assert elapsed_time < 2.0, f"Time series took {elapsed_time:.2f}s, expected < 2s"

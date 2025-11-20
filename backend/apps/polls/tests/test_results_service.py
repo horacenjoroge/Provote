@@ -589,9 +589,11 @@ class TestResultsPerformance:
         import time
 
         # Create many users and votes
+        import time
+        import uuid
         users = []
         for i in range(1000):  # 1000 users
-            user = User.objects.create_user(username=f"user{i}", password="pass")
+            user = User.objects.create_user(username=f"user_{int(time.time())}_{uuid.uuid4().hex[:8]}_{i}", password="pass")
             users.append(user)
 
         # Create votes (distributed across options) - use bulk_create for performance

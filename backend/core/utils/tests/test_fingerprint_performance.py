@@ -52,10 +52,11 @@ class TestFingerprintValidationPerformance:
         option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create many old votes (outside time window)
+        # Use anonymous votes to avoid unique constraint
         old_time = timezone.now() - timedelta(days=2)
         for i in range(1000):
             Vote.objects.create(
-                user=user,
+                user=None,  # Anonymous votes to avoid unique constraint
                 poll=poll,
                 option=option,
                 fingerprint=f"old_fp_{i}",
@@ -65,9 +66,9 @@ class TestFingerprintValidationPerformance:
                 created_at=old_time,
             )
 
-        # Create recent vote
+        # Create recent vote - use anonymous to avoid unique constraint
         Vote.objects.create(
-            user=user,
+            user=None,  # Anonymous vote to avoid unique constraint
             poll=poll,
             option=option,
             fingerprint="recent_fp",
@@ -77,10 +78,11 @@ class TestFingerprintValidationPerformance:
         )
 
         # Measure query performance (should only query recent votes)
+        # Use None for user_id since we're testing with anonymous votes
         import time
 
         start = time.time()
-        result = check_fingerprint_suspicious("recent_fp", poll.id, user.id, "192.168.1.1")
+        result = check_fingerprint_suspicious("recent_fp", poll.id, None, "192.168.1.1")
         elapsed = time.time() - start
 
         # Should be fast even with 1000 old votes (time window prevents scanning them)
@@ -134,10 +136,11 @@ class TestFingerprintValidationPerformance:
 
         # Create votes in batches (simulating millions)
         # In real scenario, these would be millions, but for test we create representative sample
+        # Use anonymous votes to avoid unique constraint (one vote per user per poll)
         for day in range(30):
             vote_time = base_time + timedelta(days=day)
             Vote.objects.create(
-                user=user,
+                user=None,  # Anonymous votes to avoid unique constraint
                 poll=poll,
                 option=option,
                 fingerprint=f"historical_fp_{day}",
@@ -147,10 +150,10 @@ class TestFingerprintValidationPerformance:
                 created_at=vote_time,
             )
 
-        # Create recent vote
+        # Create recent vote - use anonymous to avoid unique constraint
         recent_fp = "recent_check_fp"
         Vote.objects.create(
-            user=user,
+            user=None,  # Anonymous vote to avoid unique constraint
             poll=poll,
             option=option,
             fingerprint=recent_fp,
@@ -160,10 +163,11 @@ class TestFingerprintValidationPerformance:
         )
 
         # Check fingerprint - should only query last 24 hours
+        # Use None for user_id since we're testing with anonymous votes
         import time
 
         start = time.time()
-        result = check_fingerprint_suspicious(recent_fp, poll.id, user.id, "192.168.1.1")
+        result = check_fingerprint_suspicious(recent_fp, poll.id, None, "192.168.1.1")
         elapsed = time.time() - start
 
         # Should be fast because time window limits query scope

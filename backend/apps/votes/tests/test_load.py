@@ -8,10 +8,14 @@ import threading
 import time
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.conf import settings
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.votes.models import Vote
+
+# Check if using SQLite (which doesn't handle concurrent writes well)
+IS_SQLITE = settings.DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3"
 
 
 @pytest.mark.django_db
@@ -19,6 +23,10 @@ from apps.votes.models import Vote
 class TestVoteAPILoad:
     """Load tests for voting API."""
 
+    @pytest.mark.skipif(
+        IS_SQLITE,
+        reason="Concurrent load tests require PostgreSQL, skipped on SQLite due to write lock limitations."
+    )
     def test_1000_concurrent_vote_requests(self, poll, choices):
         """
         Load test: 1000 concurrent vote requests.
@@ -124,6 +132,10 @@ class TestVoteAPILoad:
             for error in errors_list[:10]:  # Print first 10 errors
                 print(f"  {error}")
 
+    @pytest.mark.skipif(
+        IS_SQLITE,
+        reason="Concurrent load tests require PostgreSQL, skipped on SQLite due to write lock limitations."
+    )
     def test_concurrent_votes_same_user_prevented(self, user, poll, choices):
         """
         Test that concurrent votes from same user are prevented.
@@ -175,6 +187,10 @@ class TestVoteAPILoad:
         vote_count = Vote.objects.filter(user=user, poll=poll).count()
         assert vote_count == 1, f"Expected 1 vote, got {vote_count}"
 
+    @pytest.mark.skipif(
+        IS_SQLITE,
+        reason="Concurrent load tests require PostgreSQL, skipped on SQLite due to write lock limitations."
+    )
     def test_concurrent_votes_different_users_succeed(self, poll, choices):
         """
         Test that concurrent votes from different users all succeed.
