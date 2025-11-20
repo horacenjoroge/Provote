@@ -10,6 +10,7 @@ from django.db import models, transaction
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer, BaseRenderer
 from rest_framework.response import Response
 
 from core.mixins import RateLimitHeadersMixin
@@ -520,15 +521,16 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["get"],
-        url_path="export/results",
+        url_path="export-results",
         url_name="results-export",
         permission_classes=[IsPollOwnerOrReadOnly],
+        renderer_classes=[JSONRenderer, BrowsableAPIRenderer],  # Explicitly register renderers
     )
     def results_export(self, request, pk=None):
         """
         Export poll results in various formats.
         
-        GET /api/v1/polls/{id}/export/results/?format=csv|json|pdf
+        GET /api/v1/polls/{id}/export-results/?format=csv|json|pdf
         
         Query Parameters:
         - format: Export format (csv or json, default: json)
@@ -557,7 +559,10 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
             )
         
         # Get format from query params
-        export_format = request.query_params.get("format", "json").lower()
+        # Use 'export_format' to avoid DRF's special 'format' parameter for content negotiation
+        # Fall back to 'format' for backward compatibility
+        export_format = request.query_params.get("export_format") or request.query_params.get("format", "json")
+        export_format = export_format.lower()
         use_background = request.query_params.get("background", "false").lower() == "true"
         
         # Check if export is large enough for background processing
@@ -618,7 +623,7 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    @action(detail=True, methods=["get"], url_path="results")
+    @action(detail=True, methods=["get"], url_path="results", renderer_classes=[JSONRenderer, BrowsableAPIRenderer])
     def results(self, request, pk=None):
         """
         Get poll results with comprehensive calculations.
@@ -723,12 +728,12 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @action(detail=True, methods=["get"], url_path="export/vote-log")
+    @action(detail=True, methods=["get"], url_path="export-vote-log")
     def export_vote_log(self, request, pk=None):
         """
         Export vote log for a poll.
         
-        GET /api/v1/polls/{id}/export/vote-log/?format=csv|json&anonymize=true&include_invalid=false
+        GET /api/v1/polls/{id}/export-vote-log/?format=csv|json&anonymize=true&include_invalid=false
         
         Query Parameters:
         - format: Export format (csv or json, default: csv)
@@ -751,7 +756,9 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         
-        export_format = request.query_params.get("format", "csv").lower()
+        # Use 'export_format' to avoid DRF's special 'format' parameter for content negotiation
+        export_format = request.query_params.get("export_format") or request.query_params.get("format", "csv")
+        export_format = export_format.lower()
         anonymize = request.query_params.get("anonymize", "false").lower() == "true"
         include_invalid = request.query_params.get("include_invalid", "false").lower() == "true"
         use_background = request.query_params.get("background", "false").lower() == "true"
@@ -810,12 +817,12 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @action(detail=True, methods=["get"], url_path="export/analytics")
+    @action(detail=True, methods=["get"], url_path="export-analytics")
     def export_analytics(self, request, pk=None):
         """
         Export analytics report as PDF.
         
-        GET /api/v1/polls/{id}/export/analytics/?background=false
+        GET /api/v1/polls/{id}/export-analytics/?background=false
         
         Query Parameters:
         - background: Use background task (default: false)
@@ -881,12 +888,12 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-    @action(detail=True, methods=["get"], url_path="export/audit-trail")
+    @action(detail=True, methods=["get"], url_path="export-audit-trail")
     def export_audit_trail(self, request, pk=None):
         """
         Export audit trail for a poll.
         
-        GET /api/v1/polls/{id}/export/audit-trail/?format=csv|json&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+        GET /api/v1/polls/{id}/export-audit-trail/?format=csv|json&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
         
         Query Parameters:
         - format: Export format (csv or json, default: csv)
@@ -912,7 +919,9 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         
-        export_format = request.query_params.get("format", "csv").lower()
+        # Use 'export_format' to avoid DRF's special 'format' parameter for content negotiation
+        export_format = request.query_params.get("export_format") or request.query_params.get("format", "csv")
+        export_format = export_format.lower()
         start_date_str = request.query_params.get("start_date")
         end_date_str = request.query_params.get("end_date")
         use_background = request.query_params.get("background", "false").lower() == "true"

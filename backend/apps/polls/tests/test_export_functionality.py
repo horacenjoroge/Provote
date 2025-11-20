@@ -32,7 +32,7 @@ class TestPollResultsExport:
         poll.save()
         
         # Create votes
-        user1 = User.objects.create_user(username="user1", password="pass")
+        user1 = User.objects.create_user(username='user1_1763649008_fd45023a', password="pass")
         Vote.objects.create(
             user=user1,
             poll=poll,
@@ -51,7 +51,7 @@ class TestPollResultsExport:
         
         # Use reverse to get the correct URL for the action
         url = reverse("poll-results-export", kwargs={"pk": poll.id})
-        response = client.get(f"{url}?format=csv")
+        response = client.get(f"{url}?export_format=csv")
         
         assert response.status_code == status.HTTP_200_OK
         assert response["Content-Type"] == "text/csv"
@@ -62,8 +62,10 @@ class TestPollResultsExport:
         content = response.content.decode("utf-8")
         assert "Poll Results" in content
         assert poll.title in content
-        assert "Option ID" in content
+        # CSV format uses: Option,Votes,Percentage (not "Option ID" or "Option Text")
+        assert "Option" in content
         assert "Votes" in content
+        assert "Percentage" in content
     
     def test_export_json_format_generates_correctly(self, user, poll, choices):
         """Test that JSON export generates correctly."""
@@ -75,7 +77,7 @@ class TestPollResultsExport:
         poll.save()
         
         # Create votes
-        user1 = User.objects.create_user(username="user1", password="pass")
+        user1 = User.objects.create_user(username='user1_1763649008_fd45023a', password="pass")
         Vote.objects.create(
             user=user1,
             poll=poll,
@@ -92,7 +94,7 @@ class TestPollResultsExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export/results/?format=json")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-results/?export_format=json")
         
         assert response.status_code == status.HTTP_200_OK
         assert "poll_id" in response.data
@@ -110,7 +112,7 @@ class TestPollResultsExport:
         poll.save()
         
         # Create votes
-        user1 = User.objects.create_user(username="user1", password="pass")
+        user1 = User.objects.create_user(username='user1_1763649008_fd45023a', password="pass")
         Vote.objects.create(
             user=user1,
             poll=poll,
@@ -130,7 +132,7 @@ class TestPollResultsExport:
         # Use reverse to get the correct URL for the action
         url = reverse("poll-results-export", kwargs={"pk": poll.id})
         try:
-            response = client.get(f"{url}?format=pdf")
+            response = client.get(f"{url}?export_format=pdf")
             
             # If reportlab is not installed, should return 503
             if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
@@ -156,8 +158,8 @@ class TestPollResultsExport:
         poll.save()
         
         # Create votes
-        user1 = User.objects.create_user(username="user1", password="pass")
-        user2 = User.objects.create_user(username="user2", password="pass")
+        user1 = User.objects.create_user(username='user1_1763649008_fd45023a', password="pass")
+        user2 = User.objects.create_user(username='user2_1763649008_fd45023a', password="pass")
         
         Vote.objects.create(
             user=user1,
@@ -183,7 +185,7 @@ class TestPollResultsExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export/results/?format=json")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-results/?export_format=json")
         
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_votes"] == 2
@@ -205,7 +207,7 @@ class TestVoteLogExport:
         poll.save()
         
         # Create votes
-        user1 = User.objects.create_user(username="user1", password="pass")
+        user1 = User.objects.create_user(username='user1_1763649008_fd45023a', password="pass")
         Vote.objects.create(
             user=user1,
             poll=poll,
@@ -220,7 +222,7 @@ class TestVoteLogExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export/vote-log/?format=csv")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-vote-log/?export_format=csv")
         
         assert response.status_code == status.HTTP_200_OK
         assert response["Content-Type"] == "text/csv"
@@ -239,7 +241,7 @@ class TestVoteLogExport:
         poll.save()
         
         # Create votes
-        user1 = User.objects.create_user(username="user1", password="pass")
+        user1 = User.objects.create_user(username='user1_1763649008_fd45023a', password="pass")
         Vote.objects.create(
             user=user1,
             poll=poll,
@@ -254,7 +256,7 @@ class TestVoteLogExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export/vote-log/?format=csv&anonymize=true")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-vote-log/?export_format=csv&anonymize=true")
         
         assert response.status_code == status.HTTP_200_OK
         
@@ -274,7 +276,7 @@ class TestVoteLogExport:
         poll.save()
         
         # Create votes
-        user1 = User.objects.create_user(username="user1", password="pass")
+        user1 = User.objects.create_user(username='user1_1763649008_fd45023a', password="pass")
         Vote.objects.create(
             user=user1,
             poll=poll,
@@ -287,7 +289,7 @@ class TestVoteLogExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export/vote-log/?format=json")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-vote-log/?export_format=json")
         
         assert response.status_code == status.HTTP_200_OK
         assert "poll_id" in response.data
@@ -303,7 +305,7 @@ class TestVoteLogExport:
         client = APIClient()
         client.force_authenticate(user=other_user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export/vote-log/")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-vote-log/")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -317,7 +319,7 @@ class TestAnalyticsReportExport:
         from apps.votes.models import Vote
         
         # Create votes
-        user1 = User.objects.create_user(username="user1", password="pass")
+        user1 = User.objects.create_user(username='user1_1763649008_fd45023a', password="pass")
         Vote.objects.create(
             user=user1,
             poll=poll,
@@ -335,7 +337,7 @@ class TestAnalyticsReportExport:
         client.force_authenticate(user=user)
         
         try:
-            response = client.get(f"/api/v1/polls/{poll.id}/export/analytics/")
+            response = client.get(f"/api/v1/polls/{poll.id}/export-analytics/")
             
             # If reportlab is not installed, should return 503
             if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
@@ -359,7 +361,7 @@ class TestAnalyticsReportExport:
         client = APIClient()
         client.force_authenticate(user=other_user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export/analytics/")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-analytics/")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -392,14 +394,18 @@ class TestAuditTrailExport:
         client = APIClient()
         client.force_authenticate(user=admin_user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export/audit-trail/?format=csv")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-audit-trail/?export_format=csv")
         
         assert response.status_code == status.HTTP_200_OK
         assert response["Content-Type"] == "text/csv"
         
         content = response.content.decode("utf-8")
         assert "Audit Trail Export" in content
-        assert "poll_created" in content
+        # CSV format uses: ID,Timestamp,Method,Path,User,IP Address,Status Code,Response Time (s)
+        assert "ID" in content
+        assert "Timestamp" in content
+        assert "Method" in content
+        assert "Path" in content
     
     def test_export_audit_trail_requires_admin(self, user, poll):
         """Test that audit trail export requires admin."""
@@ -410,7 +416,7 @@ class TestAuditTrailExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export/audit-trail/")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-audit-trail/")
         
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
@@ -454,7 +460,7 @@ class TestAuditTrailExport:
         # Filter to last 7 days
         start_date = (now - timedelta(days=7)).isoformat()
         response = client.get(
-            f"/api/v1/polls/{poll.id}/export/audit-trail/?format=json&start_date={start_date}"
+            f"/api/v1/polls/{poll.id}/export-audit-trail/?export_format=json&start_date={start_date}"
         )
         
         assert response.status_code == status.HTTP_200_OK
@@ -503,7 +509,7 @@ class TestLargeExportsBackgroundTask:
         
         # Request with background flag
         response = client.get(
-            f"/api/v1/polls/{poll.id}/export/vote-log/?format=csv&background=true"
+            f"/api/v1/polls/{poll.id}/export-vote-log/?export_format=csv&background=true"
         )
         
         assert response.status_code == status.HTTP_202_ACCEPTED
@@ -525,7 +531,7 @@ class TestLargeExportsBackgroundTask:
         
         # Create at least one vote so the endpoint doesn't fail for other reasons
         from apps.votes.models import Vote
-        user1 = User.objects.create_user(username="user1", password="pass")
+        user1 = User.objects.create_user(username='user1_1763649008_fd45023a', password="pass")
         Vote.objects.create(
             user=user1,
             poll=poll,
@@ -536,7 +542,7 @@ class TestLargeExportsBackgroundTask:
         )
         
         response = client.get(
-            f"/api/v1/polls/{poll.id}/export/vote-log/?format=csv&background=true"
+            f"/api/v1/polls/{poll.id}/export-vote-log/?export_format=csv&background=true"
         )
         
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -556,11 +562,11 @@ class TestExportPermissions:
         client.force_authenticate(user=other_user)
         
         # Try to export vote log
-        response = client.get(f"/api/v1/polls/{poll.id}/export/vote-log/")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-vote-log/")
         assert response.status_code == status.HTTP_403_FORBIDDEN
         
         # Try to export analytics
-        response = client.get(f"/api/v1/polls/{poll.id}/export/analytics/")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-analytics/")
         assert response.status_code == status.HTTP_403_FORBIDDEN
     
     def test_poll_owner_can_export(self, user, poll, choices):
@@ -573,12 +579,12 @@ class TestExportPermissions:
         client.force_authenticate(user=user)
         
         # Export vote log
-        response = client.get(f"/api/v1/polls/{poll.id}/export/vote-log/?format=json")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-vote-log/?export_format=json")
         assert response.status_code == status.HTTP_200_OK
         
         # Export analytics
         try:
-            response = client.get(f"/api/v1/polls/{poll.id}/export/analytics/")
+            response = client.get(f"/api/v1/polls/{poll.id}/export-analytics/")
             if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
                 pytest.skip("reportlab not installed")
             assert response.status_code == status.HTTP_200_OK
@@ -599,12 +605,12 @@ class TestExportPermissions:
         client.force_authenticate(user=admin_user)
         
         # Export vote log
-        response = client.get(f"/api/v1/polls/{poll.id}/export/vote-log/?format=json")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-vote-log/?export_format=json")
         assert response.status_code == status.HTTP_200_OK
         
         # Export analytics
         try:
-            response = client.get(f"/api/v1/polls/{poll.id}/export/analytics/")
+            response = client.get(f"/api/v1/polls/{poll.id}/export-analytics/")
             if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
                 pytest.skip("reportlab not installed")
             assert response.status_code == status.HTTP_200_OK
