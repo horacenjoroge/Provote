@@ -417,7 +417,9 @@ class BulkPollOptionCreateSerializer(serializers.Serializer):
         # Create options
         created_options = []
         for order, option_data in enumerate(options_data, start=max_order + 1):
-            option = PollOption.objects.create(poll=poll, order=order, **option_data)
+            # Remove 'order' from option_data if present, since we're setting it explicitly
+            option_data_clean = {k: v for k, v in option_data.items() if k != 'order'}
+            option = PollOption.objects.create(poll=poll, order=order, **option_data_clean)
             created_options.append(option)
 
         return {"options": created_options}

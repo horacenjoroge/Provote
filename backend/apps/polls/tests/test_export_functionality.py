@@ -48,7 +48,7 @@ class TestPollResultsExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/results/export/?format=csv")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-results/?format=csv")
         
         assert response.status_code == status.HTTP_200_OK
         assert response["Content-Type"] == "text/csv"
@@ -89,7 +89,7 @@ class TestPollResultsExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/results/export/?format=json")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-results/?format=json")
         
         assert response.status_code == status.HTTP_200_OK
         assert "poll_id" in response.data
@@ -125,7 +125,7 @@ class TestPollResultsExport:
         client.force_authenticate(user=user)
         
         try:
-            response = client.get(f"/api/v1/polls/{poll.id}/results/export/?format=pdf")
+            response = client.get(f"/api/v1/polls/{poll.id}/export-results/?format=pdf")
             
             # If reportlab is not installed, should return 503
             if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
@@ -178,7 +178,7 @@ class TestPollResultsExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/results/export/?format=json")
+        response = client.get(f"/api/v1/polls/{poll.id}/export-results/?format=json")
         
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_votes"] == 2

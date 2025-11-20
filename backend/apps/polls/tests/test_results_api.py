@@ -384,7 +384,7 @@ class TestResultsExportEndpoint:
         poll.settings["show_results_during_voting"] = True
         poll.save()
 
-        response = authenticated_client.get(f"/api/v1/polls/{poll.id}/results/export/?format=csv")
+        response = authenticated_client.get(f"/api/v1/polls/{poll.id}/export-results/?format=csv")
 
         assert response.status_code == 200
         assert response["Content-Type"] == "text/csv"
@@ -405,7 +405,7 @@ class TestResultsExportEndpoint:
         poll.settings["show_results_during_voting"] = True
         poll.save()
 
-        response = authenticated_client.get(f"/api/v1/polls/{poll.id}/results/export/")
+        response = authenticated_client.get(f"/api/v1/polls/{poll.id}/export-results/")
 
         assert response.status_code == 200
         assert "poll_id" in response.data  # JSON response
@@ -416,7 +416,7 @@ class TestResultsExportEndpoint:
         poll.settings["show_results_during_voting"] = True
         poll.save()
 
-        response = authenticated_client.get(f"/api/v1/polls/{poll.id}/results/export/?format=xml")
+        response = authenticated_client.get(f"/api/v1/polls/{poll.id}/export-results/?format=xml")
 
         assert response.status_code == 400
         assert "Invalid format" in response.data["error"]
@@ -485,7 +485,7 @@ class TestResultsExportEndpoint:
         poll.settings["show_results_during_voting"] = True
         poll.save()
 
-        response = authenticated_client.get(f"/api/v1/polls/{poll.id}/results/export/?format=csv")
+        response = authenticated_client.get(f"/api/v1/polls/{poll.id}/export-results/?format=csv")
 
         assert response.status_code == 200
         content = response.content.decode("utf-8")

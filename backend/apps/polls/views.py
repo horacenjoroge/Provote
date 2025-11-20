@@ -622,12 +622,12 @@ class PollViewSet(RateLimitHeadersMixin, viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-    @action(detail=True, methods=["get"], url_path="results/export", url_name="results-export")
+    @action(detail=True, methods=["get"], url_path="export-results", url_name="results-export")
     def results_export(self, request, pk=None):
         """
         Export poll results in various formats.
         
-        GET /api/v1/polls/{id}/results/export/?format=csv|json
+        GET /api/v1/polls/{id}/export-results/?format=csv|json|pdf
         
         Query Parameters:
         - format: Export format (csv or json, default: json)

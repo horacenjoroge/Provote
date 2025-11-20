@@ -43,7 +43,7 @@ class TestPollCreation:
         assert poll.options.count() == 3
 
     def test_poll_creation_without_options(self, user):
-        """Test poll creation without options."""
+        """Test poll creation without options (as draft)."""
         client = APIClient()
         client.force_authenticate(user=user)
 
@@ -51,6 +51,7 @@ class TestPollCreation:
         data = {
             "title": "Test Poll",
             "description": "Test Description",
+            "is_draft": True,  # Drafts can be created without options
         }
 
         response = client.post(url, data, format="json")
@@ -58,6 +59,7 @@ class TestPollCreation:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["title"] == "Test Poll"
         assert len(response.data.get("options", [])) == 0
+        assert response.data["is_draft"] is True
 
     def test_poll_creation_requires_authentication(self):
         """Test that poll creation requires authentication."""
