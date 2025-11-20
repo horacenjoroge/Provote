@@ -428,8 +428,10 @@ def check_fingerprint_suspicious(
 
             # Check for rapid votes
             if vote_count >= 2:
-                first_vote_time = recent_votes[-1]["created_at"]
-                last_vote_time = recent_votes[0]["created_at"]
+                # Convert to list to support negative indexing
+                recent_votes_list = list(recent_votes)
+                first_vote_time = recent_votes_list[-1]["created_at"]
+                last_vote_time = recent_votes_list[0]["created_at"]
                 time_diff_minutes = (
                     (last_vote_time - first_vote_time).total_seconds() / 60
                 )
