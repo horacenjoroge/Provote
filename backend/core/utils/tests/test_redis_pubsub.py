@@ -403,7 +403,7 @@ class TestRedisPubSubIntegration:
                 db=settings.REDIS_DB,
                 decode_responses=True,
             )
-            redis_client.ping()   pytest --cov=backend --cov-report=html --cov-fail-under=0
+            redis_client.ping()
         except Exception:
             pytest.skip("Redis not available for integration test")
         
