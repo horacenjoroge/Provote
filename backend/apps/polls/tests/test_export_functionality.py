@@ -7,6 +7,7 @@ import pytest
 from datetime import timedelta
 from django.contrib.auth.models import User
 from django.core import mail
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -48,7 +49,9 @@ class TestPollResultsExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
-        response = client.get(f"/api/v1/polls/{poll.id}/export-results/?format=csv")
+        # Use reverse to get the correct URL for the action
+        url = reverse("poll-results-export", kwargs={"pk": poll.id})
+        response = client.get(f"{url}?format=csv")
         
         assert response.status_code == status.HTTP_200_OK
         assert response["Content-Type"] == "text/csv"
@@ -124,8 +127,10 @@ class TestPollResultsExport:
         client = APIClient()
         client.force_authenticate(user=user)
         
+        # Use reverse to get the correct URL for the action
+        url = reverse("poll-results-export", kwargs={"pk": poll.id})
         try:
-            response = client.get(f"/api/v1/polls/{poll.id}/export-results/?format=pdf")
+            response = client.get(f"{url}?format=pdf")
             
             # If reportlab is not installed, should return 503
             if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
