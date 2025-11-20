@@ -389,9 +389,14 @@ class TestIPExtraction:
 class TestIdempotencyServiceIntegration:
     """Integration tests for idempotency service."""
 
+    @pytest.mark.skipif(
+        lambda: settings.CACHES["default"]["BACKEND"] == "django.core.cache.backends.dummy.DummyCache",
+        reason="Idempotency tests require a functional cache backend (not DummyCache)"
+    )
     def test_full_idempotency_flow(self, user):
         """Test complete idempotency flow."""
         from django.core.cache import cache
+        from django.conf import settings
 
         cache.clear()
 

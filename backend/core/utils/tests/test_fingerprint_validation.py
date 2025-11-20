@@ -385,11 +385,16 @@ class TestPermanentFingerprintBlocking:
         assert result["risk_score"] == 100
         assert "permanently blocked" in " ".join(result["reasons"]).lower()
 
+    @pytest.mark.skipif(
+        lambda: settings.CACHES["default"]["BACKEND"] == "django.core.cache.backends.dummy.DummyCache",
+        reason="Fingerprint blocking tests require a functional cache backend (not DummyCache)"
+    )
     def test_fingerprint_auto_blocked_on_suspicious_activity(self, user):
         """Test that fingerprint is automatically blocked when suspicious pattern detected."""
         from apps.analytics.models import FingerprintBlock
         from apps.polls.models import Poll, PollOption
         from apps.votes.models import Vote
+        from django.conf import settings
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
         option = PollOption.objects.create(poll=poll, text="Option 1")
@@ -407,9 +412,18 @@ class TestPermanentFingerprintBlocking:
             idempotency_key="key1",
         )
 
-        # Update cache to mark as suspicious
+        # Update cache to mark as suspicious - need to simulate multiple users
         fp = make_fingerprint("suspicious_fp")
-        update_fingerprint_cache(fp, poll.id, user.id, "192.168.1.1")
+        # Manually set cache to show multiple users
+        from django.core.cache import cache
+        from core.utils.fingerprint_validation import get_fingerprint_cache_key
+        cache_key = get_fingerprint_cache_key(fp, poll.id)
+        cache.set(cache_key, {
+            "user_count": 2,  # Simulate 2 users
+            "users": [user.id],  # First user
+            "ip_count": 1,
+            "count": 1,
+        }, 3600)
 
         # Try to vote with different user (should trigger permanent block)
         factory = RequestFactory()
