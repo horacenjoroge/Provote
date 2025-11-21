@@ -196,10 +196,9 @@ erDiagram
     
     Follow {
         bigint id PK
-        bigint follower_id FK "NOT NULL"
-        bigint following_id FK "NOT NULL"
+        bigint follower_id FK "NOT NULL, UNIQUE with following_id"
+        bigint following_id FK "NOT NULL, UNIQUE with follower_id"
         datetime created_at "NOT NULL"
-        UNIQUE follower_id following_id
     }
     
     Category {
@@ -246,9 +245,9 @@ erDiagram
     
     Vote {
         bigint id PK
-        bigint user_id FK "NULLABLE"
+        bigint user_id FK "NULLABLE, UNIQUE with poll_id if not null"
         bigint option_id FK "NOT NULL"
-        bigint poll_id FK "NOT NULL"
+        bigint poll_id FK "NOT NULL, UNIQUE with user_id if user_id not null"
         string voter_token "NOT NULL, max_length=64, INDEXED"
         string idempotency_key UK "NOT NULL, max_length=64, INDEXED"
         string ip_address "NULLABLE, INDEXED"
@@ -258,7 +257,6 @@ erDiagram
         text fraud_reasons
         integer risk_score "default=0"
         datetime created_at "NOT NULL"
-        UNIQUE user_id poll_id "if user_id NOT NULL"
     }
     
     VoteAttempt {
@@ -398,15 +396,14 @@ erDiagram
     
     NotificationDelivery {
         bigint id PK
-        bigint notification_id FK "NOT NULL"
-        string channel "max_length=20"
+        bigint notification_id FK "NOT NULL, UNIQUE with channel"
+        string channel "max_length=20, UNIQUE with notification_id"
         string status "max_length=20, INDEXED"
         datetime sent_at "NULLABLE"
         text error_message
         string external_id "max_length=255"
         datetime created_at "NOT NULL"
         datetime updated_at "NOT NULL"
-        UNIQUE notification_id channel
     }
 ```
 
@@ -1070,12 +1067,14 @@ graph LR
 **Configuration:**
 ```json
 {
-  "allowed_countries": ["US", "CA"],
-  "blocked_countries": ["XX"],
-  "allowed_regions": ["US-CA", "US-NY"],
+  "allowed_countries": ["KE"],
+  "blocked_countries": [],
+  "allowed_regions": [],
   "blocked_regions": []
 }
 ```
+
+**Note:** The default configuration restricts voting to Kenya (KE) only. To allow other countries, add their ISO 3166-1 alpha-2 country codes to the `allowed_countries` array.
 
 **Code Reference:** `backend/core/utils/geolocation.py`
 
