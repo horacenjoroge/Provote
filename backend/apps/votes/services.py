@@ -183,6 +183,65 @@ def cast_vote(
         except Exception as e:
             logger.error(f"Error checking IP reputation: {e}")
             # Fail open - don't block legitimate users if reputation check fails
+    
+    # Step 2.6: Check geographic restrictions (before transaction to allow VoteAttempt logging)
+    # Fetch poll early to check geographic restrictions
+    try:
+        poll = Poll.objects.get(id=poll_id)
+    except Poll.DoesNotExist:
+        raise PollNotFoundError(f"Poll with id {poll_id} not found")
+    
+    if ip_address:
+        try:
+            from core.utils.geolocation import validate_geographic_restriction
+            
+            security_rules = poll.security_rules or {}
+            allowed_countries = security_rules.get("allowed_countries")
+            blocked_countries = security_rules.get("blocked_countries")
+            allowed_regions = security_rules.get("allowed_regions")
+            blocked_regions = security_rules.get("blocked_regions")
+            
+            # Only check if restrictions are configured
+            if allowed_countries or blocked_countries or allowed_regions or blocked_regions:
+                is_allowed, error_message = validate_geographic_restriction(
+                    ip_address=ip_address,
+                    allowed_countries=allowed_countries,
+                    blocked_countries=blocked_countries,
+                    allowed_regions=allowed_regions,
+                    blocked_regions=blocked_regions,
+                )
+                
+                if not is_allowed:
+                    # Create VoteAttempt outside transaction
+                    try:
+                        option = PollOption.objects.get(id=choice_id, poll=poll)
+                        voter_token = generate_voter_token(
+                            user_id=user.id if user and user.is_authenticated else None,
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                            fingerprint=fingerprint,
+                        )
+                        VoteAttempt.objects.create(
+                            user=user,
+                            poll=poll,
+                            option=option,
+                            voter_token=voter_token,
+                            idempotency_key=idempotency_key,
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                            fingerprint=fingerprint or "",
+                            success=False,
+                            error_message=error_message or "Geographic restriction violation",
+                        )
+                    except Exception as e:
+                        logger.error(f"Error creating VoteAttempt for geographic restriction: {e}")
+                    
+                    raise InvalidVoteError(error_message or "Voting is not allowed from your location")
+        except InvalidVoteError:
+            raise
+        except Exception as e:
+            logger.error(f"Error checking geographic restrictions: {e}")
+            # Fail open - don't block legitimate users if geolocation check fails
 
     # Generate voter token
     voter_token = generate_voter_token(
@@ -219,6 +278,8 @@ def cast_vote(
 
     # Step 3: Poll validation with select-for-update lock
     with transaction.atomic():
+        # Poll was already fetched for geographic restrictions, but we need it locked
+        # Re-fetch with lock for transaction safety
         try:
             # Use select_for_update to prevent race conditions
             poll = Poll.objects.select_for_update().get(id=poll_id)
