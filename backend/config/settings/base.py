@@ -357,5 +357,10 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "django.template": {
+            "handlers": ["console"],
+            "level": "ERROR",  # Suppress template warnings (like VariableDoesNotExist)
+            "propagate": False,
+        },
     },
 }

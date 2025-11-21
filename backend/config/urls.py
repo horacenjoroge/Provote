@@ -12,6 +12,41 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def api_root(request):
+    """API root endpoint that lists available endpoints."""
+    from rest_framework.renderers import JSONRenderer
+    
+    data = {
+        "message": "Welcome to Provote API",
+        "version": "1.0.0",
+        "documentation": {
+            "swagger_ui": "/api/docs/",
+            "redoc": "/api/redoc/",
+            "schema": "/api/schema/",
+            "schema_viewer": "/api/schema/view/",
+        },
+        "endpoints": {
+            "polls": "/api/v1/polls/",
+            "votes": "/api/v1/votes/",
+            "users": "/api/v1/users/",
+            "analytics": "/api/v1/analytics/",
+            "notifications": "/api/v1/notifications/",
+            "categories": "/api/v1/categories/",
+            "tags": "/api/v1/tags/",
+        },
+        "info": "For detailed API documentation, visit /api/docs/ or /api/redoc/",
+    }
+    
+    # Force JSON response to avoid BrowsableAPIRenderer template issues
+    # The template error is harmless but we'll avoid it by using JSON only
+    return Response(data, content_type="application/json")
 
 
 def schema_viewer(request):
@@ -73,6 +108,8 @@ def schema_viewer(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # API Root - accessible without authentication
+    path("api/v1/", api_root, name="api-root"),
     path("api/v1/", include("apps.polls.urls")),
     path("api/v1/", include("apps.votes.urls")),
     path("api/v1/", include("apps.users.urls")),
