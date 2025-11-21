@@ -49,20 +49,55 @@ LOGGING_CONFIG = None
 # This prevents Django from trying to serialize the database during test setup
 DATABASES["default"]["TEST"]["SERIALIZE"] = False
 
-# Use in-memory channel layer for tests
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer",
-    },
-}
-
-# Use dummy cache for tests (unless testing cache functionality)
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
-        "LOCATION": "unique-snowflake",
+# Use Redis for cache and channel layer if available, otherwise fallback to in-memory/dummy
+# This allows Redis integration tests to run when Redis is available
+try:
+    import redis
+    redis_client = redis.Redis(
+        host=os.environ.get("REDIS_HOST", "localhost"),
+        port=int(os.environ.get("REDIS_PORT", 6379)),
+        db=int(os.environ.get("REDIS_DB", 0)),
+        socket_connect_timeout=2,
+    )
+    redis_client.ping()
+    # Redis is available - use it for cache and channels
+    REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+    REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
+    REDIS_DB = int(os.environ.get("REDIS_DB", 0))
+    
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}",
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
+            "KEY_PREFIX": "provote_test",
+        }
     }
-}
+    
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [(REDIS_HOST, REDIS_PORT)],
+            },
+        },
+    }
+except Exception:
+    # Redis not available - use in-memory/dummy fallbacks
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
+    
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+            "LOCATION": "unique-snowflake",
+        }
+    }
 
 # Disable migrations for faster tests (optional)
 # Uncomment to skip migrations during tests

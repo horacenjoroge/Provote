@@ -20,6 +20,7 @@ faker==20.1.0
 locust==2.17.0
 websockets==12.0
 daphne==4.0.0  # Required for channels testing
+reportlab==4.0.7  # For PDF export functionality
 
 # Code Quality
 black==23.12.1

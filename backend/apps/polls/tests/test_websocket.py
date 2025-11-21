@@ -450,7 +450,7 @@ class TestWebSocketLoad:
         from django.db import connection
 
         # Skip this test on SQLite as it doesn't handle concurrent connections well
-        if settings.DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+        if connection.vendor == "sqlite":
             pytest.skip("Concurrent WebSocket load test requires PostgreSQL, skipped on SQLite")
 
         poll.settings["show_results_during_voting"] = True

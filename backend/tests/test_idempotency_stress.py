@@ -363,10 +363,6 @@ class TestIdempotencyStress:
         
         print(f"\n✓ Race condition test: 10 simultaneous, 1 created")
 
-    @pytest.mark.skipif(
-        True,  # Skip on SQLite - deadlock testing requires PostgreSQL
-        reason="Database deadlock testing requires PostgreSQL"
-    )
     def test_database_deadlock_handling(self, poll_with_choices, user, request_factory):
         """
         Test database deadlock handling under extreme concurrency.
