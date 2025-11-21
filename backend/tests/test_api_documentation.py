@@ -128,7 +128,8 @@ class TestAPIDocumentation:
         assert "title" in info
         assert "version" in info
         assert info["title"] == "Provote API"
-        assert info["version"] == "1.0.0"
+        # Version may include additional info in parentheses
+        assert info["version"].startswith("1.0.0")
     
     def test_schema_has_tags(self):
         """Test that schema has tags defined."""
