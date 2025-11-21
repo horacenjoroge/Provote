@@ -12,17 +12,17 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, renderer_classes
 from rest_framework.permissions import AllowAny
+from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@renderer_classes([JSONRenderer])  # Only use JSONRenderer to avoid BrowsableAPIRenderer template issues
 def api_root(request):
     """API root endpoint that lists available endpoints."""
-    from rest_framework.renderers import JSONRenderer
-    
     data = {
         "message": "Welcome to Provote API",
         "version": "1.0.0",
@@ -44,9 +44,7 @@ def api_root(request):
         "info": "For detailed API documentation, visit /api/docs/ or /api/redoc/",
     }
     
-    # Force JSON response to avoid BrowsableAPIRenderer template issues
-    # The template error is harmless but we'll avoid it by using JSON only
-    return Response(data, content_type="application/json")
+    return Response(data)
 
 
 def schema_viewer(request):
