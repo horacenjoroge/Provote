@@ -421,12 +421,19 @@ class TestRedisPubSubIntegration:
             from django.conf import settings
             import redis
             
-            redis_client = redis.Redis(
-                host=settings.REDIS_HOST,
-                port=settings.REDIS_PORT,
-                db=settings.REDIS_DB,
-                decode_responses=True,
-            )
+            # Try to get Redis URL from settings or environment
+            redis_url = getattr(settings, 'REDIS_URL', os.environ.get('REDIS_URL', None))
+            if redis_url:
+                redis_client = redis.from_url(redis_url, decode_responses=True)
+            else:
+                # Fallback to individual settings
+                redis_client = redis.Redis(
+                    host=getattr(settings, 'REDIS_HOST', 'localhost'),
+                    port=getattr(settings, 'REDIS_PORT', 6379),
+                    db=getattr(settings, 'REDIS_DB', 0),
+                    decode_responses=True,
+                    socket_connect_timeout=2,
+                )
             redis_client.ping()
         except Exception:
             pytest.skip("Redis not available for integration test")
@@ -494,12 +501,19 @@ class TestRedisPubSubIntegration:
             from django.conf import settings
             import redis
             
-            redis_client = redis.Redis(
-                host=settings.REDIS_HOST,
-                port=settings.REDIS_PORT,
-                db=settings.REDIS_DB,
-                decode_responses=True,
-            )
+            # Try to get Redis URL from settings or environment
+            redis_url = getattr(settings, 'REDIS_URL', os.environ.get('REDIS_URL', None))
+            if redis_url:
+                redis_client = redis.from_url(redis_url, decode_responses=True)
+            else:
+                # Fallback to individual settings
+                redis_client = redis.Redis(
+                    host=getattr(settings, 'REDIS_HOST', 'localhost'),
+                    port=getattr(settings, 'REDIS_PORT', 6379),
+                    db=getattr(settings, 'REDIS_DB', 0),
+                    decode_responses=True,
+                    socket_connect_timeout=2,
+                )
             redis_client.ping()
         except Exception:
             pytest.skip("Redis not available for integration test")
