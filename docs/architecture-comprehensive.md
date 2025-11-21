@@ -1266,7 +1266,7 @@ done
 
 ---
 
-**Document Maintained By:** Architecture Team  
+**Document Maintained By:** Horace Njoroge
 **Last Review Date:** 2025-11-21  
 **Next Review Date:** 2026-02-21
 
