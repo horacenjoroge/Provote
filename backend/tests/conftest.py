@@ -33,11 +33,14 @@ def user(db):
 @pytest.fixture
 def poll(db, user):
     """Create a test poll."""
+    from django.utils import timezone
     return Poll.objects.create(
         title="Test Poll",
         description="This is a test poll",
         created_by=user,
         is_active=True,
+        starts_at=timezone.now() - timezone.timedelta(hours=1),
+        ends_at=timezone.now() + timezone.timedelta(days=1),
     )
 
 
