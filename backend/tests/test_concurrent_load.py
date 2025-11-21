@@ -23,7 +23,7 @@ IS_SQLITE = connection.vendor == "sqlite"
 
 
 @pytest.mark.integration
-@pytest.mark.django_db
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.slow
 @pytest.mark.skipif(IS_SQLITE, reason="SQLite doesn't support concurrent writes. Use PostgreSQL for load tests.")
 class TestConcurrentLoad:
@@ -47,9 +47,7 @@ class TestConcurrentLoad:
                 request.META["HTTP_USER_AGENT"] = "ConcurrentTest/1.0"
                 user_id = user.id if hasattr(user, "id") else 0
                 request.fingerprint = hashlib.sha256(f"user_{user_id}".encode()).hexdigest()
-
-                from django.test import RequestFactory
-                import hashlib
+                
                 vote, is_new = cast_vote(
                     user=user,
                     poll_id=poll.id,

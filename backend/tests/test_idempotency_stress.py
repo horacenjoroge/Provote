@@ -579,8 +579,8 @@ class TestIdempotencyStress:
                 response = client.post(
                     "/api/v1/votes/cast/",
                     {
-                        "poll": poll.id,
-                        "option": choice.id,
+                        "poll_id": poll.id,
+                        "choice_id": choice.id,
                         "idempotency_key": idempotency_key,
                     },
                     format="json",
