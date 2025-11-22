@@ -1,0 +1,253 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: "3.11"
+  DOCKER_REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job 1: Linting and Code Quality
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black==23.12.1 isort==5.13.2 flake8==7.0.0 bandit==1.7.5
+
+      - name: Check code style with Black
+        run: |
+          echo "Running Black check..."
+          black --check --diff backend/ || (echo "❌ Black check failed. Run 'black backend/' to fix." && exit 1)
+          echo "✅ Black check passed"
+
+      - name: Check imports with isort
+        run: |
+          echo "Running isort check..."
+          isort --check-only --diff backend/ || (echo "❌ isort check failed. Run 'isort backend/' to fix." && exit 1)
+          echo "✅ isort check passed"
+
+      - name: Lint with flake8
+        run: |
+          echo "Running flake8..."
+          flake8 backend/ --count --select=E9,F63,F7,F82 --show-source --statistics || (echo "❌ flake8 found critical errors" && exit 1)
+          flake8 backend/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || (echo "⚠️ flake8 found style issues (non-blocking)" && true)
+          echo "✅ flake8 check passed"
+
+      - name: Security scan with Bandit
+        run: |
+          echo "Running Bandit security scan..."
+          bandit -r backend/ -f json -o bandit-report.json || true
+          bandit -r backend/ -ll || (echo "❌ Bandit found security issues" && exit 1)
+          echo "✅ Bandit security scan passed"
+
+      - name: Upload Bandit report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: bandit-report
+          path: bandit-report.json
+          retention-days: 7
+
+  # Job 2: Run Tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: provote_test
+          POSTGRES_USER: provote_user
+          POSTGRES_PASSWORD: provote_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements/**/*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/development.txt
+
+      - name: Set up environment variables
+        run: |
+          echo "SECRET_KEY=test-secret-key-for-ci-$(date +%s)" >> $GITHUB_ENV
+          echo "DEBUG=True" >> $GITHUB_ENV
+          echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> $GITHUB_ENV
+          echo "DB_NAME=provote_test" >> $GITHUB_ENV
+          echo "DB_USER=provote_user" >> $GITHUB_ENV
+          echo "DB_PASSWORD=provote_password" >> $GITHUB_ENV
+          echo "DB_HOST=localhost" >> $GITHUB_ENV
+          echo "DB_PORT=5432" >> $GITHUB_ENV
+          echo "REDIS_HOST=localhost" >> $GITHUB_ENV
+          echo "REDIS_PORT=6379" >> $GITHUB_ENV
+          echo "REDIS_DB=0" >> $GITHUB_ENV
+          echo "CELERY_BROKER_URL=redis://localhost:6379/0" >> $GITHUB_ENV
+          echo "CELERY_RESULT_BACKEND=redis://localhost:6379/0" >> $GITHUB_ENV
+          echo "DJANGO_SETTINGS_MODULE=config.settings.test" >> $GITHUB_ENV
+
+      - name: Create static directory
+        run: mkdir -p backend/static
+
+      - name: Run database migrations
+        working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          PYTHONPATH: ${{ github.workspace }}/backend
+        run: |
+          python manage.py migrate --noinput
+
+      - name: Run tests with coverage
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          PYTHONPATH: ${{ github.workspace }}/backend
+        run: |
+          pytest --cov=backend --cov-report=xml --cov-report=html --cov-report=term --junitxml=junit.xml -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: junit.xml
+          retention-days: 7
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 7
+
+  # Job 3: Build Docker Image
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint, test]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: Test Docker image
+        run: |
+          docker run --rm ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${GITHUB_REF#refs/heads/} python --version || \
+          docker run --rm ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.pull_request.number }} python --version || \
+          docker run --rm provote:test python --version
+
+  # Job 4: Check if PR can be merged (all checks must pass)
+  pr-check:
+    name: PR Merge Check
+    runs-on: ubuntu-latest
+    needs: [lint, test, build]
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check PR status
+        run: |
+          echo "✅ All CI checks passed!"
+          echo "This PR is ready for review and merge."
+          echo ""
+          echo "Checks completed:"
+          echo "  - ✅ Linting (Black, isort, flake8)"
+          echo "  - ✅ Security scan (Bandit)"
+          echo "  - ✅ Tests"
+          echo "  - ✅ Docker build"
+

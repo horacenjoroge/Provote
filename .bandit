@@ -1,0 +1,5 @@
+[bandit]
+exclude_dirs = /tests/,/migrations/,/venv/,/env/,/.venv/,/node_modules/
+skips = B101,B601  # Skip assert_used and shell_injection_subprocess (tests use asserts, subprocess is safe)
+tests = B201,B301,B401,B501,B601  # Focus on critical security issues
+

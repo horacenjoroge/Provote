@@ -1,10 +1,20 @@
-name: Deploy
+name: Deploy (Legacy)
+
+# NOTE: This workflow is being replaced by deploy-production.yml
+# The new deployment workflow includes:
+# - CI checks as prerequisite
+# - GitHub release creation
+# - Better deployment steps
+# - Health checks
+#
+# This workflow is kept for backward compatibility.
+# Consider migrating to deploy-production.yml for new features.
 
 on:
   push:
     branches: [main]
-    tags:
-      - "v*"
+  tags:
+    - "v*"
 
 jobs:
   deploy:
