@@ -124,7 +124,8 @@ docker-compose logs web  # Check web service logs
 
 - See `README.md` for general information
 - See `docs/development.md` for development guide
-- See `docs/deployment.md` for deployment guide
+- See `docs/deployment-guide.md` for comprehensive deployment guide
+- See `docs/architecture-comprehensive.md` for architecture documentation
 - See `docs/api.md` for API documentation
 - See `ENV_SETUP.md` for environment setup
 
