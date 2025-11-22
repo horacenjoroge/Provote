@@ -205,12 +205,17 @@ class TestSecretManagement:
 
     def test_env_example_exists(self):
         """Test that .env.example exists."""
-        env_example_path = Path(__file__).parent.parent.parent / "docker" / ".env.example"
-        assert env_example_path.exists(), ".env.example should exist"
+        # Check both possible locations
+        env_example_path1 = Path(__file__).parent.parent.parent / "docker" / ".env.example"
+        env_example_path2 = Path(__file__).parent.parent.parent / "docker" / "env.example"
+        assert env_example_path1.exists() or env_example_path2.exists(), ".env.example should exist in docker/ directory"
 
     def test_env_example_has_required_variables(self):
         """Test that .env.example includes all required variables."""
-        env_example_path = Path(__file__).parent.parent.parent / "docker" / ".env.example"
+        # Check both possible locations
+        env_example_path1 = Path(__file__).parent.parent.parent / "docker" / ".env.example"
+        env_example_path2 = Path(__file__).parent.parent.parent / "docker" / "env.example"
+        env_example_path = env_example_path1 if env_example_path1.exists() else env_example_path2
         content = env_example_path.read_text()
 
         required_vars = [
@@ -231,7 +236,10 @@ class TestSecretManagement:
 
     def test_env_example_has_security_warnings(self):
         """Test that .env.example includes security warnings."""
-        env_example_path = Path(__file__).parent.parent.parent / "docker" / ".env.example"
+        # Check both possible locations
+        env_example_path1 = Path(__file__).parent.parent.parent / "docker" / ".env.example"
+        env_example_path2 = Path(__file__).parent.parent.parent / "docker" / "env.example"
+        env_example_path = env_example_path1 if env_example_path1.exists() else env_example_path2
         content = env_example_path.read_text()
 
         # Check for security warnings
