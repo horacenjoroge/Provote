@@ -518,7 +518,7 @@ class TestCastVoteCacheInvalidation:
 
     def test_cache_invalidation_on_vote(self, user, poll, choices):
         """Test that cache is invalidated when vote is created."""
-        
+
         # Set some cache keys
         cache.set(f"poll:{poll.id}", {"data": "test"}, 3600)
         cache.set(f"poll:{poll.id}:results", {"results": []}, 3600)

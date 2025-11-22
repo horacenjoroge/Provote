@@ -598,7 +598,6 @@ class TestResultsPerformance:
         import time
         import uuid
 
-
         users = []
         for i in range(1000):  # 1000 users
             user = User.objects.create_user(
@@ -673,7 +672,6 @@ class TestResultsPerformance:
         """Performance test: calculate results for poll with 1M votes."""
         import time
 
-
         # For performance test, we'll simulate 1M votes using cached counts
         # rather than actually creating 1M database records
         # This tests the calculation logic, not database performance
@@ -729,7 +727,6 @@ class TestResultsPerformance:
     def test_cached_results_performance(self, poll, choices):
         """Test that cached results are faster."""
         import time
-
 
         user = User.objects.create_user(username="user1", password="pass")
         Vote.objects.create(

@@ -117,6 +117,7 @@ class NotificationPreferenceViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(preferences)
         return Response(serializer.data)
 
+
 User = get_user_model()
 
 

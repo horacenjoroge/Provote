@@ -18,7 +18,7 @@ class TestResultsEndpoint:
         self, authenticated_client, poll, choices
     ):
         """Test that results endpoint returns correct data structure."""
-        
+
         # Create some votes
         user1 = User.objects.create_user(username="user1", password="pass")
         user2 = User.objects.create_user(username="user2", password="pass")
@@ -82,7 +82,7 @@ class TestResultsEndpoint:
         self, authenticated_client, poll, choices
     ):
         """Test that private poll results are hidden from non-owners."""
-        
+
         # Create another user
         other_user = User.objects.create_user(username="other", password="pass")
         other_client = authenticated_client
@@ -132,7 +132,7 @@ class TestResultsEndpoint:
         self, authenticated_client, poll, choices
     ):
         """Test that results are shown during voting when enabled."""
-        
+
         # Create a vote
         user = User.objects.create_user(username="user1", password="pass")
         Vote.objects.create(
@@ -179,7 +179,7 @@ class TestResultsEndpoint:
 
     def test_results_after_poll_closes(self, authenticated_client, poll, choices):
         """Test that results are shown after poll closes."""
-        
+
         # Create a vote
         user = User.objects.create_user(username="user1", password="pass")
         Vote.objects.create(
@@ -260,7 +260,7 @@ class TestResultsLiveEndpoint:
 
     def test_live_endpoint_detects_updates(self, authenticated_client, poll, choices):
         """Test that live endpoint detects when results have changed."""
-        
+
         # Configure poll to show results
         poll.settings["show_results_during_voting"] = True
         poll.save()
@@ -323,7 +323,7 @@ class TestResultsLiveEndpoint:
         poll.save()
 
         # Create another user
-        
+
         other_user = User.objects.create_user(username="other", password="pass")
         authenticated_client.force_authenticate(user=other_user)
 
@@ -341,7 +341,6 @@ class TestResultsExportEndpoint:
         """Test export/resultsing results in JSON format."""
         import time
 
-        
         # Create some votes
         user = User.objects.create_user(
             username=f"user_json_{int(time.time())}", password="pass"
@@ -374,7 +373,6 @@ class TestResultsExportEndpoint:
     def test_results_export_csv_format(self, authenticated_client, poll, choices):
         """Test export/resultsing results in CSV format."""
         import time
-
 
         # Create some votes
         user = User.objects.create_user(
@@ -455,7 +453,6 @@ class TestResultsExportEndpoint:
         import time
         import uuid
 
-        
         other_user = User.objects.create_user(
             username=f"other_{int(time.time())}_{uuid.uuid4().hex[:8]}", password="pass"
         )
@@ -476,7 +473,6 @@ class TestResultsExportEndpoint:
         import time
         import uuid
 
-        
         users = []
         for i in range(3):
             user = User.objects.create_user(
@@ -548,7 +544,7 @@ class TestResultsAggregateStatistics:
 
     def test_statistics_included_in_results(self, authenticated_client, poll, choices):
         """Test that aggregate statistics are included in results."""
-        
+
         # Create votes
         users = []
         for i in range(5):
