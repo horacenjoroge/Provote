@@ -86,7 +86,8 @@ class Command(BaseCommand):
                             continue
 
                         # Count records
-                        cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+                        # nosec B608: table_name comes from Django ORM introspection, not user input
+                        cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')  # nosec B608
                         record_count = cursor.fetchone()[0]
 
                         self.stdout.write(f"  ✓ {model_name}: {record_count} records")
@@ -98,8 +99,9 @@ class Command(BaseCommand):
                                 and not field.null
                                 and hasattr(field, "column")
                             ):
+                                # nosec B608: table_name and field.column come from Django ORM introspection, not user input
                                 cursor.execute(
-                                    f'SELECT COUNT(*) FROM "{table_name}" WHERE "{field.column}" IS NULL'
+                                    f'SELECT COUNT(*) FROM "{table_name}" WHERE "{field.column}" IS NULL'  # nosec B608
                                 )
                                 null_count = cursor.fetchone()[0]
                                 if null_count > 0:
