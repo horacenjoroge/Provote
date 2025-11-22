@@ -112,7 +112,7 @@ class TestIdempotencyCheck:
 
         # Skip if cache backend is dummy (doesn't store anything)
         cache_backend = (
-            getattr("CACHES", {}).get("default", {}).get("BACKEND", "")
+            getattr(settings, "CACHES", {}).get("default", {}).get("BACKEND", "")
         )
         if "dummy" in cache_backend.lower():
             pytest.skip(
@@ -142,7 +142,7 @@ class TestIdempotencyCheck:
 
         # Skip if cache backend is dummy (doesn't store anything)
         cache_backend = (
-            getattr("CACHES", {}).get("default", {}).get("BACKEND", "")
+            getattr(settings, "CACHES", {}).get("default", {}).get("BACKEND", "")
         )
         if "dummy" in cache_backend.lower():
             pytest.skip(
