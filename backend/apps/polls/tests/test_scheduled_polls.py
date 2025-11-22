@@ -305,7 +305,7 @@ class TestProcessScheduledPolls:
             is_active=False,
         )
 
-        result = process_scheduled_polls.apply()
+        result = process_scheduled_polls()
 
         poll.refresh_from_db()
 
