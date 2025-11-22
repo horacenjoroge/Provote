@@ -52,7 +52,7 @@ class TestAdminDashboardStatistics:
             starts_at=timezone.now() - timedelta(days=1),
             ends_at=timezone.now() + timedelta(days=1),
         )
-        poll2 = Poll.objects.create(
+        _poll2 = Poll.objects.create(
             title="Test Poll 2",
             created_by=admin_user,
             is_active=False,

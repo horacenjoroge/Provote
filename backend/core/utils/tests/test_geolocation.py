@@ -42,7 +42,6 @@ class TestIPGeolocation:
     @patch("core.utils.geolocation._get_country_from_ipapi")
     def test_get_country_from_ip_caching(self, mock_ipapi, mock_maxmind):
         """Test that country lookups are cached."""
-        from django.conf import settings
 
         # Skip if using DummyCache (doesn't actually cache)
         if (
