@@ -4,7 +4,7 @@ Tests for CAPTCHA verification utility.
 
 from unittest.mock import MagicMock, Mock, patch
 
-import from core.exceptions import CaptchaVerificationError
+from core.exceptions import CaptchaVerificationError
 from core.utils.captcha import (
     DEFAULT_MIN_SCORE,
     verify_captcha_for_vote,
