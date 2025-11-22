@@ -17,11 +17,7 @@ from apps.analytics.factories import (
 )
 from apps.analytics.models import (
     AuditLog,
-    FingerprintBlock,
     FraudAlert,
-    IPBlock,
-    IPReputation,
-    IPWhitelist,
     PollAnalytics,
 )
 from django.db import IntegrityError

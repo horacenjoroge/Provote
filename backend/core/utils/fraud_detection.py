@@ -8,8 +8,8 @@ import re
 from datetime import timedelta
 from typing import Dict, List, Optional
 
-from django.conf import settings
-from django.core.cache import cache
+
+
 from django.db.models import Count
 from django.utils import timezone
 

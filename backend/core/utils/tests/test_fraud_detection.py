@@ -30,7 +30,7 @@ class TestRapidVotesFromIP:
         ip_address = "192.168.1.100"
         users = []
         for i in range(5):
-            user = User.objects.create_user(
+            _user = User.objects.create_user(
                 username=f"user_{timestamp}_{i}", password="pass"
             )
             users.append(user)
@@ -137,7 +137,7 @@ class TestSuspiciousVotingPattern:
         ip_address = "192.168.1.100"
         users = []
         for i in range(10):
-            user = User.objects.create_user(
+            _user = User.objects.create_user(
                 username=f"user_{timestamp}_{i}", password="pass"
             )
             users.append(user)
@@ -169,7 +169,7 @@ class TestSuspiciousVotingPattern:
 
         timestamp = int(time.time() * 1000000)
         ip_address = "192.168.1.100"
-        user = User.objects.create_user(username=f"user1_{timestamp}", password="pass")
+        _user = User.objects.create_user(username=f"user1_{timestamp}", password="pass")
 
         # Create votes distributed across options (but same user can only vote once per poll)
         # So we need to use different users or anonymous votes
@@ -309,7 +309,7 @@ class TestDetectFraud:
         ip_address = "192.168.1.100"
         users = []
         for i in range(5):
-            user = User.objects.create_user(
+            _user = User.objects.create_user(
                 username=f"user_{timestamp}_{i}", password="pass"
             )
             users.append(user)

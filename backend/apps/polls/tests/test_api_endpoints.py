@@ -291,7 +291,7 @@ class TestPollDeletion:
         from apps.votes.models import Vote
 
         # Create a vote
-        vote = Vote.objects.create(
+        _vote = Vote.objects.create(
             user=user,
             poll=poll,
             option=choices[0],

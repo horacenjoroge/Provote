@@ -11,12 +11,12 @@ from datetime import datetime
 from io import BytesIO, StringIO
 from typing import Dict, Optional
 
-from apps.analytics.models import AuditLog, FraudAlert
-from apps.polls.models import Poll, PollOption
-from apps.votes.models import Vote, VoteAttempt
+from apps.analytics.models import AuditLog
+from apps.polls.models import Poll
+from apps.votes.models import Vote
 from core.services.poll_analytics import get_comprehensive_analytics
-from django.conf import settings
-from django.core.cache import cache
+
+
 from django.db.models import Q
 from django.utils import timezone
 

@@ -170,7 +170,7 @@ class TestFingerprintSuspiciousDetection:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         user2 = type(user).objects.create_user(username="user2", password="pass")
 
@@ -204,7 +204,7 @@ class TestFingerprintSuspiciousDetection:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create rapid votes (use anonymous votes to allow multiple votes from same IP)
         with freeze_time("2024-01-01 10:00:00"):
@@ -267,7 +267,7 @@ class TestFingerprintSuspiciousDetection:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create votes with same fingerprint, different IPs (use anonymous votes)
         Vote.objects.create(
@@ -309,7 +309,7 @@ class TestFingerprintSuspiciousDetection:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create old vote (outside time window) - use anonymous vote
         old_time = timezone.now() - timedelta(days=2)
@@ -362,7 +362,7 @@ class TestFingerprintValidationIntegration:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # First check - cache miss, should query database
         fp = make_fingerprint("perf_fp")
@@ -393,7 +393,7 @@ class TestPermanentFingerprintBlocking:
         from apps.polls.models import Poll, PollOption
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create permanent block
         FingerprintBlock.objects.create(
@@ -426,7 +426,7 @@ class TestPermanentFingerprintBlocking:
         from django.conf import settings
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         user2 = type(user).objects.create_user(username="user2", password="pass")
 
@@ -471,7 +471,7 @@ class TestPermanentFingerprintBlocking:
         assert result["block_vote"] is True
 
         # Verify permanent block was created
-        block = FingerprintBlock.objects.filter(
+        _block = FingerprintBlock.objects.filter(
             fingerprint=make_fingerprint("suspicious_fp"), is_active=True
         ).first()
         assert block is not None
@@ -487,10 +487,10 @@ class TestPermanentFingerprintBlocking:
         from django.utils import timezone
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create permanent block
-        block = FingerprintBlock.objects.create(
+        _block = FingerprintBlock.objects.create(
             fingerprint=make_fingerprint("persistent_blocked_fp"),
             reason="Used by multiple users",
             first_seen_user=user,
@@ -515,10 +515,10 @@ class TestPermanentFingerprintBlocking:
         from apps.polls.models import Poll, PollOption
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create and then unblock fingerprint
-        block = FingerprintBlock.objects.create(
+        _block = FingerprintBlock.objects.create(
             fingerprint=make_fingerprint("unblocked_fp"),
             reason="Test block",
             first_seen_user=user,
@@ -661,7 +661,7 @@ class TestDetectSuspiciousFingerprintChanges:
         from freezegun import freeze_time
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create multiple votes with different fingerprints in short time
         # Use different polls to avoid unique constraint (same user can only vote once per poll)
@@ -729,7 +729,7 @@ class TestDetectSuspiciousFingerprintChanges:
         from apps.votes.models import Vote
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create old vote (outside time window)
         old_time = timezone.now() - timedelta(days=2)
@@ -766,7 +766,7 @@ class TestFingerprintIPCombination:
         from apps.votes.models import Vote
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         fingerprint = make_fingerprint("shared_fp")
 
@@ -809,7 +809,7 @@ class TestFingerprintIPCombination:
         from apps.votes.models import Vote
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         fingerprint = make_fingerprint("consistent_fp")
 

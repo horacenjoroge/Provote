@@ -6,10 +6,10 @@ Analyzes votes in batches to detect coordinated attacks and fraud patterns.
 import logging
 from collections import defaultdict
 from datetime import timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from django.conf import settings
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)

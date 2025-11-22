@@ -22,7 +22,7 @@ class TestFingerprintValidationPerformance:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Update cache
         update_fingerprint_cache("perf_fp", poll.id, user.id, "192.168.1.1")
@@ -49,7 +49,7 @@ class TestFingerprintValidationPerformance:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create many old votes (outside time window)
         # Use anonymous votes to avoid unique constraint
@@ -99,14 +99,14 @@ class TestFingerprintValidationPerformance:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # First check - should query database
         connection.queries_log.clear()
         result1 = check_fingerprint_suspicious(
             "cache_test_fp", poll.id, user.id, "192.168.1.1"
         )
-        db_queries_first = len(connection.queries)
+        _db_queries_first = len(connection.queries)
 
         # Update cache
         update_fingerprint_cache("cache_test_fp", poll.id, user.id, "192.168.1.1")
@@ -116,7 +116,7 @@ class TestFingerprintValidationPerformance:
         result2 = check_fingerprint_suspicious(
             "cache_test_fp", poll.id, user.id, "192.168.1.1"
         )
-        db_queries_second = len(connection.queries)
+        _db_queries_second = len(connection.queries)
 
         # Cache should reduce database queries
         # Note: May still have some queries for VoteAttempt logging, but fingerprint check should use cache
@@ -133,7 +133,7 @@ class TestFingerprintValidationPerformance:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        option = PollOption.objects.create(poll=poll, text="Option 1")
+        _option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Simulate scenario: Many votes exist, but we only query recent ones
         # Create votes across different time periods

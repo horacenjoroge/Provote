@@ -184,7 +184,7 @@ class TestPollReadRateLimiting:
         client.force_authenticate(user=user)
 
         # Make many read requests
-        rate_limited = False
+        _rate_limited = False
         for i in range(1005):  # More than limit
             response = client.get(f"/api/v1/polls/{poll.id}/")
 

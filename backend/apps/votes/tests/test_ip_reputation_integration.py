@@ -33,7 +33,7 @@ class TestIPReputationIntegration:
         client.force_authenticate(user=user)
 
         # Set IP address in request META
-        response = client.post(
+        _response = client.post(
             "/api/v1/votes/cast/",
             {
                 "poll_id": poll.id,
@@ -73,7 +73,7 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
 
-        response = client.post(
+        _response = client.post(
             "/api/v1/votes/cast/",
             {
                 "poll_id": poll.id,
@@ -114,7 +114,7 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
 
-        response = client.post(
+        _response = client.post(
             "/api/v1/votes/cast/",
             {
                 "poll_id": poll.id,
@@ -150,7 +150,7 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
 
-        response = client.post(
+        _response = client.post(
             "/api/v1/votes/cast/",
             {
                 "poll_id": poll.id,
@@ -189,7 +189,7 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
 
-        response = client.post(
+        _response = client.post(
             "/api/v1/votes/cast/",
             {
                 "poll_id": poll.id,
@@ -211,7 +211,7 @@ class TestIPReputationIntegration:
         assert is_blocked is False
 
         # Should be able to vote now
-        response = client.post(
+        _response = client.post(
             "/api/v1/votes/cast/",
             {
                 "poll_id": poll.id,
@@ -239,7 +239,7 @@ class TestIPReputationIntegration:
         client = APIClient()
         client.force_authenticate(user=user)
 
-        response = client.post(
+        _response = client.post(
             "/api/v1/votes/cast/",
             {
                 "poll_id": poll.id,

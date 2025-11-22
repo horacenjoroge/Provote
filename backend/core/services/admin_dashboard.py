@@ -14,10 +14,10 @@ from apps.analytics.models import (
     IPWhitelist,
 )
 from apps.polls.models import Poll
-from apps.votes.models import Vote, VoteAttempt
+from apps.votes.models import Vote
 from django.contrib.auth.models import User
-from django.db import models
-from django.db.models import Avg, Count, Max, Q
+
+from django.db.models import Avg, Count, Max
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)

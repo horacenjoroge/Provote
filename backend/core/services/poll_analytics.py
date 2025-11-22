@@ -4,11 +4,11 @@ Calculates various metrics for poll performance analysis.
 """
 
 import logging
-from collections import defaultdict
+
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.db.models.functions import TruncDate, TruncHour
 from django.utils import timezone
 

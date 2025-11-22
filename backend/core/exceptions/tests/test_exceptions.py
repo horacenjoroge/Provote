@@ -208,7 +208,7 @@ class TestExceptionHandlerIntegration:
         from apps.polls.models import Poll
 
         # Create a poll
-        poll = Poll.objects.create(title="Test Poll", created_by=user)
+        _poll = Poll.objects.create(title="Test Poll", created_by=user)
 
         # Try to vote with invalid poll ID (serializer validation catches this first)
         response = authenticated_client.post(
