@@ -23,6 +23,47 @@ from rest_framework.response import Response
 @renderer_classes(
     [JSONRenderer]
 )  # Only use JSONRenderer to avoid BrowsableAPIRenderer template issues
+def health_check(request):
+    """Health check endpoint for Docker and load balancers."""
+    from django.db import connection
+    from django.core.cache import cache
+
+    # Check database connectivity
+    db_status = "healthy"
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+    except Exception:
+        db_status = "unhealthy"
+
+    # Check cache connectivity
+    cache_status = "healthy"
+    try:
+        cache.set("health_check", "ok", 1)
+        cache.get("health_check")
+    except Exception:
+        cache_status = "unhealthy"
+
+    overall_status = "healthy" if db_status == "healthy" else "unhealthy"
+    status_code = 200 if overall_status == "healthy" else 503
+
+    data = {
+        "status": overall_status,
+        "checks": {
+            "database": db_status,
+            "cache": cache_status,
+        },
+        "version": "1.0.0",
+    }
+
+    return Response(data, status=status_code)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+@renderer_classes(
+    [JSONRenderer]
+)  # Only use JSONRenderer to avoid BrowsableAPIRenderer template issues
 def api_root(request):
     """API root endpoint that lists available endpoints."""
     data = {
@@ -108,6 +149,8 @@ def schema_viewer(request):
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    # Health check endpoint for Docker/load balancers
+    path("health/", health_check, name="health-check"),
     # API Root - accessible without authentication
     path("api/v1/", api_root, name="api-root"),
     path("api/v1/", include("apps.polls.urls")),

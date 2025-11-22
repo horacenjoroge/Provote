@@ -30,6 +30,35 @@ EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)  # noqa: F405
 EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")  # noqa: F405
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")  # noqa: F405
 
+# Logging for production - structured JSON logging for Docker
+import json
+import logging
+
+LOG_LEVEL = env("LOG_LEVEL", default="INFO")  # noqa: F405
+
+
+class JSONFormatter(logging.Formatter):
+    """JSON formatter for structured logging in Docker."""
+
+    def format(self, record):
+        log_data = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno,
+        }
+        # Add exception info if present
+        if record.exc_info:
+            log_data["exception"] = self.formatException(record.exc_info)
+        # Add extra fields if present
+        if hasattr(record, "request_id"):
+            log_data["request_id"] = record.request_id
+        return json.dumps(log_data)
+
+
 # Logging for production
 LOGGING = {
     "version": 1,
@@ -39,16 +68,19 @@ LOGGING = {
             "format": "{levelname} {asctime} {module} {message}",
             "style": "{",
         },
+        "json": {
+            "()": JSONFormatter,
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "formatter": "json" if env("JSON_LOGGING", default="false").lower() == "true" else "verbose",
         },
     },
     "root": {
         "handlers": ["console"],
-        "level": "WARNING",
+        "level": LOG_LEVEL,
     },
     "loggers": {
         "django": {
@@ -56,9 +88,29 @@ LOGGING = {
             "level": "WARNING",
             "propagate": False,
         },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.template": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
         "provote": {
             "handlers": ["console"],
-            "level": "INFO",
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "gunicorn": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
             "propagate": False,
         },
     },
