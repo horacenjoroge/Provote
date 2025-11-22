@@ -341,8 +341,6 @@ class TestScheduledPollsTimezoneHandling:
 
     def test_poll_activation_with_timezone(self, user):
         """Test that poll activation handles timezones correctly."""
-        import pytz
-        from core.utils.timezone_utils import convert_to_utc
 
         # Create poll with start time in a specific timezone
         ny_tz = pytz.timezone("America/New_York")
@@ -369,8 +367,6 @@ class TestScheduledPollsTimezoneHandling:
 
     def test_poll_closing_with_timezone(self, user):
         """Test that poll closing handles timezones correctly."""
-        import pytz
-        from core.utils.timezone_utils import convert_to_utc
 
         # Create poll with end time in a specific timezone
         past_utc = timezone.now() - timedelta(minutes=5)
@@ -393,7 +389,6 @@ class TestScheduledPollsTimezoneHandling:
 
     def test_polls_in_different_timezones(self, user):
         """Test that polls in different timezones are handled correctly."""
-        import pytz
 
         # Create polls with different timezone contexts
         # All stored in UTC in database, but created with different timezone awareness

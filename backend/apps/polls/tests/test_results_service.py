@@ -13,7 +13,6 @@ from apps.polls.services import (
     invalidate_results_cache,
 )
 from apps.votes.models import Vote
-from django.contrib.auth.models import User
 from django.core.cache import cache
 
 
@@ -23,7 +22,6 @@ class TestVoteCounts:
 
     def test_vote_counts_accurate(self, poll, choices):
         """Test that vote counts are accurate."""
-        from django.contrib.auth.models import User
 
         # Create votes
         users = []
@@ -75,7 +73,6 @@ class TestVoteCounts:
 
     def test_vote_counts_with_invalid_votes(self, poll, choices):
         """Test that invalid votes are not counted."""
-        from django.contrib.auth.models import User
 
         user1 = User.objects.create_user(username="user1", password="pass")
         user2 = User.objects.create_user(username="user2", password="pass")
@@ -121,7 +118,6 @@ class TestPercentages:
 
     def test_percentages_sum_to_100(self, poll, choices):
         """Test that percentages sum to 100%."""
-        from django.contrib.auth.models import User
 
         # Ensure we have at least 3 choices for this test
         if len(choices) < 3:
@@ -212,7 +208,6 @@ class TestWinnerDetection:
 
     def test_single_winner_detected(self, poll, choices):
         """Test that single winner is detected."""
-        from django.contrib.auth.models import User
 
         users = []
         for i in range(5):
@@ -263,7 +258,6 @@ class TestWinnerDetection:
 
     def test_tie_detected(self, poll, choices):
         """Test that ties are detected."""
-        from django.contrib.auth.models import User
 
         users = []
         for i in range(4):
@@ -326,7 +320,6 @@ class TestWinnerDetection:
 
     def test_calculate_winners_function(self, poll, choices):
         """Test calculate_winners function directly."""
-        from django.contrib.auth.models import User
 
         user1 = User.objects.create_user(username="user1", password="pass")
         user2 = User.objects.create_user(username="user2", password="pass")
@@ -366,7 +359,6 @@ class TestParticipationRate:
 
     def test_participation_rate_calculation(self, poll, choices):
         """Test participation rate calculation."""
-        from django.contrib.auth.models import User
 
         users = []
         for i in range(5):
@@ -447,7 +439,6 @@ class TestResultsCaching:
     def test_cache_invalidated_on_new_vote(self, poll, choices):
         """Test that cache is invalidated on new vote."""
         from apps.votes.services import cast_vote
-        from django.contrib.auth.models import User
 
         cache.clear()
 
@@ -479,7 +470,7 @@ class TestResultsCaching:
                 invalidate_results_cache(poll.id)
 
             # Cache should be invalidated (or at least verify new calculation works)
-            cached_after = get_cached_results(poll.id)
+            _cached_after = get_cached_results(poll.id)
             # Note: cast_vote might not automatically invalidate cache, so we test manually
             invalidate_results_cache(poll.id)
             assert get_cached_results(poll.id) is None
@@ -516,7 +507,6 @@ class TestResultsServiceIntegration:
 
     def test_complete_results_structure(self, poll, choices):
         """Test that results have complete structure."""
-        from django.contrib.auth.models import User
 
         user = User.objects.create_user(username="user1", password="pass")
         Vote.objects.create(
@@ -555,7 +545,6 @@ class TestResultsServiceIntegration:
     def test_results_use_denormalized_counts(self, poll, choices):
         """Test that results use denormalized counts for speed."""
         from apps.polls.models import PollOption
-        from django.contrib.auth.models import User
 
         user = User.objects.create_user(username="user1", password="pass")
         Vote.objects.create(
@@ -607,8 +596,6 @@ class TestResultsPerformance:
         import time
         import uuid
 
-        from django.contrib.auth.models import User
-        from django.db import transaction
 
         users = []
         for i in range(1000):  # 1000 users
@@ -637,7 +624,6 @@ class TestResultsPerformance:
         Vote.objects.bulk_create(votes_to_create, batch_size=500)
 
         # Update cached counts using bulk operations
-        from django.db.models import F
 
         # Update option counts
         for choice in choices:
@@ -685,8 +671,6 @@ class TestResultsPerformance:
         """Performance test: calculate results for poll with 1M votes."""
         import time
 
-        from django.contrib.auth.models import User
-        from django.db import transaction
 
         # For performance test, we'll simulate 1M votes using cached counts
         # rather than actually creating 1M database records
@@ -744,7 +728,6 @@ class TestResultsPerformance:
         """Test that cached results are faster."""
         import time
 
-        from django.contrib.auth.models import User
 
         user = User.objects.create_user(username="user1", password="pass")
         Vote.objects.create(

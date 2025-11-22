@@ -6,7 +6,6 @@ import pytest
 from apps.polls.models import Poll, PollOption
 from apps.votes.models import Vote, VoteAttempt
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
 
@@ -475,7 +474,6 @@ class TestVoteAttemptModelDatabase:
     )
     def test_vote_attempt_set_null_on_user_delete(self, poll, user):
         """Test that vote attempt user is set to null when user is deleted."""
-        from django.db import transaction
 
         option = PollOption.objects.create(poll=poll, text="Option 1")
         attempt = VoteAttempt.objects.create(

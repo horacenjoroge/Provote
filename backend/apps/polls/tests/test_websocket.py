@@ -456,7 +456,6 @@ class TestWebSocketLoad:
         """Load test: 1000 concurrent WebSocket connections."""
         import asyncio
 
-        from django.conf import settings
         from django.db import connection
 
         # Skip this test on SQLite as it doesn't handle concurrent connections well

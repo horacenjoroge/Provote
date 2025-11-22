@@ -374,7 +374,6 @@ class TestResultsExportEndpoint:
         """Test export/resultsing results in CSV format."""
         import time
 
-                from django.urls import reverse
 
         # Create some votes
         user = User.objects.create_user(
@@ -429,7 +428,6 @@ class TestResultsExportEndpoint:
 
     def test_results_export_invalid_format(self, authenticated_client, poll, choices):
         """Test that invalid format returns 400 error."""
-        from django.urls import reverse
 
         # Configure poll to show results
         poll.settings["show_results_during_voting"] = True
