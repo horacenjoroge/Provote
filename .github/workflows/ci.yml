@@ -206,6 +206,7 @@ jobs:
           file: ./docker/Dockerfile
           push: false
           tags: provote:test
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64
