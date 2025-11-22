@@ -9,7 +9,7 @@ Provides:
 """
 
 import time
-from typing import Dict,Tuple
+from typing import Dict, Tuple
 
 from django.conf import settings
 from django.core.cache import cache

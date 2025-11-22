@@ -3,7 +3,7 @@ Tests for IP reputation system.
 """
 
 from datetime import timedelta
-from unittest.mock importpatch
+from unittest.mock import patch
 
 import pytest
 from apps.analytics.models import IPWhitelist

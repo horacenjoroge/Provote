@@ -5,7 +5,7 @@ Uses Redis caching and time-windowed database queries to handle millions of vote
 
 import logging
 from datetime import timedelta
-from typing import Dict,Optional
+from typing import Dict, Optional
 
 from django.conf import settings
 from django.core.cache import cache

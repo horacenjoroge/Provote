@@ -3,7 +3,7 @@ Tests for poll categories and tags functionality.
 """
 
 import pytest
-from apps.polls.models import Category, Poll,Tag
+from apps.polls.models import Category, Poll, Tag
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status

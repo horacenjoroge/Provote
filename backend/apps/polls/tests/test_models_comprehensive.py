@@ -12,7 +12,7 @@ from apps.polls.factories import (
     PollOptionFactory,
     TagFactory,
 )
-from apps.polls.models import Category,PollOption, Tag
+from apps.polls.models import Category, PollOption, Tag
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.utils import timezone
