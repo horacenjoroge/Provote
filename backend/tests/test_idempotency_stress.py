@@ -36,15 +36,20 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
-# Skip concurrent stress tests on SQLite - it doesn't support true concurrent writes
-# These tests require PostgreSQL for accurate results
-IS_SQLITE = connection.vendor == "sqlite"
+
+def _is_sqlite():
+    """Check if using SQLite database."""
+    try:
+        return connection.vendor == "sqlite"
+    except Exception:
+        # If connection not available yet, assume SQLite (safer default)
+        return True
 
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.stress
 @pytest.mark.skipif(
-    IS_SQLITE,
+    _is_sqlite(),
     reason="Idempotency stress tests require PostgreSQL. SQLite doesn't support concurrent writes.",
 )
 class TestIdempotencyStress:

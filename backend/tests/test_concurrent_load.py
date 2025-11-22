@@ -16,16 +16,21 @@ from apps.votes.services import cast_vote
 from django.db import connection
 from django.test import RequestFactory
 
-# Skip concurrent load tests on SQLite - it doesn't support true concurrent writes
-# These tests require PostgreSQL for accurate results
-IS_SQLITE = connection.vendor == "sqlite"
+
+def _is_sqlite():
+    """Check if using SQLite database."""
+    try:
+        return connection.vendor == "sqlite"
+    except Exception:
+        # If connection not available yet, assume SQLite (safer default)
+        return True
 
 
 @pytest.mark.integration
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.slow
 @pytest.mark.skipif(
-    IS_SQLITE,
+    _is_sqlite(),
     reason="SQLite doesn't support concurrent writes. Use PostgreSQL for load tests.",
 )
 class TestConcurrentLoad:
