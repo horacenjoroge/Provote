@@ -10,10 +10,7 @@ Tests:
 - Happy paths, error scenarios, edge cases
 """
 
-import threading
-import time
 import uuid
-from concurrent.futures import as_completed
 
 import pytest
 from apps.polls.factories import PollFactory, PollOptionFactory

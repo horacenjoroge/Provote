@@ -14,10 +14,7 @@ import json
 import time
 
 import pytest
-from apps.analytics.models import AuditLog
 from django.contrib.auth import get_user_model
-from django.test import Client
-from rest_framework.test import APIClient
 
 User = get_user_model()
 

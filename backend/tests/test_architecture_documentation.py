@@ -96,8 +96,7 @@ class TestArchitectureDocumentation:
 
     def test_database_models_match_documentation(self, doc_content):
         """Test that documented models match actual models."""
-        from apps.analytics.models import (
-            AuditLog,
+                    AuditLog,
             FingerprintBlock,
             FraudAlert,
             IPBlock,
@@ -105,15 +104,11 @@ class TestArchitectureDocumentation:
             IPWhitelist,
             PollAnalytics,
         )
-        from apps.notifications.models import (
-            Notification,
+                    Notification,
             NotificationDelivery,
             NotificationPreference,
         )
-        from apps.polls.models import Tag
-        from apps.users.models import UserProfile
-        from apps.votes.models import VoteAttempt
-
+                        
         # Check that all documented models exist
         documented_models = [
             "Poll",

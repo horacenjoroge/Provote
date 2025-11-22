@@ -15,12 +15,9 @@ Tests verify:
 - Performance under retry storm
 """
 
-import asyncio
-import concurrent.futures
 import hashlib
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Tuple
 
 import pytest
 from apps.polls.models import Poll, PollOption
@@ -28,10 +25,8 @@ from apps.votes.models import Vote
 from apps.votes.services import cast_vote
 from core.utils.idempotency import generate_idempotency_key
 from django.conf import settings
-from django.contrib.auth.models import User
 from django.core.cache import cache
-from django.db import connection, transaction
-from django.test import RequestFactory
+from django.db import connectionfrom django.test import RequestFactory
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient

@@ -13,7 +13,6 @@ from apps.polls.models import Poll
 from apps.users.factories import UserFactory
 from apps.votes.models import Vote
 from apps.votes.services import cast_vote
-from django.db import connection
 from django.test import RequestFactory
 
 

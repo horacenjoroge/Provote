@@ -21,13 +21,11 @@ from core.services.poll_analytics import (
 )
 from core.throttles import PollCreateRateThrottle, PollReadRateThrottle
 from django.conf import settings
-from django.db import models, transaction
+from django.db import models
 from drf_spectacular.utils import (
     OpenApiExample,
-    OpenApiParameter,
     OpenApiResponse,
     extend_schema,
-    extend_schema_view,
 )
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action

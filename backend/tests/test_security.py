@@ -15,15 +15,12 @@ Tests all security measures including:
 """
 
 import json
-from unittest.mock import patch
 
 import pytest
 from apps.analytics.models import AuditLog
 from apps.polls.models import Poll, PollOption
-from apps.votes.models import Vote
 from django.contrib.auth import get_user_model
 from django.test import Client, RequestFactory
-from django.urls import reverse
 from rest_framework.test import APIClient
 
 User = get_user_model()
@@ -243,8 +240,7 @@ class TestCSRFProtection:
         """Test that CSRF protection is enabled."""
         # Django's CSRF middleware should be in place
         from django.conf import settings
-        from django.middleware.csrf import CsrfViewMiddleware
-
+        
         assert "django.middleware.csrf.CsrfViewMiddleware" in settings.MIDDLEWARE
 
     def test_csrf_token_required_for_post(self, client, poll, poll_option):
