@@ -1,0 +1,66 @@
+# Alertmanager configuration for Provote
+
+global:
+  resolve_timeout: 5m
+  # PagerDuty integration key (set via environment variable)
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+# Route configuration
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+  routes:
+    # Critical alerts go to PagerDuty
+    - match:
+        severity: critical
+      receiver: 'pagerduty'
+      continue: true
+    
+    # Warning alerts go to email
+    - match:
+        severity: warning
+      receiver: 'email'
+      continue: true
+
+# Receivers
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'devops@example.com'
+        from: 'alerts@provote.com'
+        smarthost: 'smtp.gmail.com:587'
+        auth_username: 'alerts@provote.com'
+        auth_password: '${SMTP_PASSWORD}'
+        headers:
+          Subject: 'Provote Alert: {{ .GroupLabels.alertname }}'
+
+  - name: 'pagerduty'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        details:
+          severity: '{{ .CommonLabels.severity }}'
+          service: '{{ .CommonLabels.service }}'
+          environment: '{{ .CommonLabels.environment }}'
+
+  - name: 'email'
+    email_configs:
+      - to: 'devops@example.com'
+        from: 'alerts@provote.com'
+        smarthost: 'smtp.gmail.com:587'
+        auth_username: 'alerts@provote.com'
+        auth_password: '${SMTP_PASSWORD}'
+        headers:
+          Subject: 'Provote Warning: {{ .GroupLabels.alertname }}'
+
+# Inhibition rules (suppress alerts when other alerts fire)
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+

@@ -1,0 +1,196 @@
+# Prometheus alert rules for Provote
+
+groups:
+  - name: api_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_errors_total[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+      # Elevated error rate (warning)
+      - alert: ElevatedErrorRate
+        expr: rate(http_errors_total[10m]) / rate(http_requests_total[10m]) > 0.02
+        for: 10m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Elevated error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 2%)"
+
+      # High response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: critical
+          service: api
+        annotations:
+          summary: "High API response time"
+          description: "P95 response time is {{ $value }}s (threshold: 2s)"
+
+      # Elevated response time (warning)
+      - alert: ElevatedResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[10m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          service: api
+        annotations:
+          summary: "Elevated API response time"
+          description: "P95 response time is {{ $value }}s (threshold: 1s)"
+
+  - name: vote_alerts
+    interval: 30s
+    rules:
+      # High vote failure rate
+      - alert: HighVoteFailureRate
+        expr: rate(vote_failures_total[5m]) / rate(votes_total[5m]) > 0.10
+        for: 5m
+        labels:
+          severity: critical
+          service: voting
+        annotations:
+          summary: "High vote failure rate"
+          description: "Vote failure rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+
+      # Low vote throughput
+      - alert: LowVoteThroughput
+        expr: rate(votes_total[10m]) < 1
+        for: 10m
+        labels:
+          severity: warning
+          service: voting
+        annotations:
+          summary: "Low vote throughput"
+          description: "Vote throughput is {{ $value }} votes/second"
+
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # Database connection failures
+      - alert: DatabaseConnectionFailure
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection failure"
+          description: "PostgreSQL exporter is down"
+
+      # High database query time
+      - alert: HighDatabaseQueryTime
+        expr: histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[10m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database query time"
+          description: "P95 query time is {{ $value }}s (threshold: 500ms)"
+
+      # Database connection pool exhaustion
+      - alert: DatabaseConnectionPoolExhausted
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "{{ $value | humanizePercentage }} of connections in use"
+
+  - name: cache_alerts
+    interval: 30s
+    rules:
+      # Cache unavailability
+      - alert: CacheUnavailable
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Cache unavailable"
+          description: "Redis exporter is down"
+
+      # Low cache hit rate
+      - alert: LowCacheHitRate
+        expr: rate(cache_hits_total[15m]) / (rate(cache_hits_total[15m]) + rate(cache_misses_total[15m])) < 0.70
+        for: 15m
+        labels:
+          severity: warning
+          service: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 70%)"
+
+  - name: websocket_alerts
+    interval: 30s
+    rules:
+      # WebSocket connection failures
+      - alert: WebSocketConnectionFailure
+        expr: websocket_connection_errors_total > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: websocket
+        annotations:
+          summary: "WebSocket connection failures"
+          description: "{{ $value }} WebSocket connection errors in the last 5 minutes"
+
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # Service down
+      - alert: ServiceDown
+        expr: up{job=~"django|postgres|redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} has been down for more than 2 minutes"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% (threshold: 80%)"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}% (threshold: 85%)"
+
+      # Disk space low
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Disk space low"
+          description: "Disk space is {{ $value }}% available (threshold: 15%)"
+

@@ -2,7 +2,12 @@
 Production settings for Provote project.
 """
 
+import os
+
 import environ
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 from .base import *  # noqa: F403, F401
 
@@ -115,3 +120,30 @@ LOGGING = {
         },
     },
 }
+
+# Sentry Configuration
+SENTRY_DSN = env("SENTRY_DSN", default=None)  # noqa: F405
+SENTRY_ENVIRONMENT = env("SENTRY_ENVIRONMENT", default="production")  # noqa: F405
+SENTRY_RELEASE = env("SENTRY_RELEASE", default="1.0.0")  # noqa: F405
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENVIRONMENT,
+        release=SENTRY_RELEASE,
+        integrations=[
+            DjangoIntegration(
+                transaction_style="url",
+                middleware_spans=True,
+                signals_spans=True,
+            ),
+            CeleryIntegration(),
+        ],
+        traces_sample_rate=0.1,  # 10% of transactions
+        send_default_pii=False,  # Don't send PII
+        before_send=lambda event, hint: event,  # Can filter events here
+    )
+
+# Prometheus Metrics
+# django-prometheus is added to INSTALLED_APPS in base.py if available
+# Metrics middleware is added to MIDDLEWARE in base.py if available

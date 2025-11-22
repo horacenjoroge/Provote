@@ -7,6 +7,13 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import include, path
+
+# Prometheus metrics (optional)
+try:
+    import django_prometheus
+    PROMETHEUS_AVAILABLE = True
+except ImportError:
+    PROMETHEUS_AVAILABLE = False
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
@@ -151,6 +158,12 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # Health check endpoint for Docker/load balancers
     path("health/", health_check, name="health-check"),
+    # Metrics endpoint for Prometheus (if available)
+]
+if PROMETHEUS_AVAILABLE:
+    urlpatterns.append(path("metrics/", include("django_prometheus.urls")))
+
+urlpatterns += [
     # API Root - accessible without authentication
     path("api/v1/", api_root, name="api-root"),
     path("api/v1/", include("apps.polls.urls")),

@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     "django_celery_results",
     "channels",
     "modeltranslation",  # Must be before local apps
+    # Monitoring (optional - only if installed)
+    # "django_prometheus",  # Prometheus metrics - uncomment if installed
     # Local apps
     "apps.polls",
     "apps.votes",
@@ -52,8 +54,23 @@ INSTALLED_APPS = [
     "apps.notifications",
 ]
 
-MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
+# Prometheus middleware (optional)
+try:
+    import django_prometheus
+    PROMETHEUS_MIDDLEWARE = [
+        "django_prometheus.middleware.PrometheusBeforeMiddleware",
+    ]
+    PROMETHEUS_MIDDLEWARE_END = [
+        "django_prometheus.middleware.PrometheusAfterMiddleware",
+    ]
+except ImportError:
+    PROMETHEUS_MIDDLEWARE = []
+    PROMETHEUS_MIDDLEWARE_END = []
+
+MIDDLEWARE = (
+    PROMETHEUS_MIDDLEWARE
+    + [
+        "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -64,9 +81,12 @@ MIDDLEWARE = [
     # Custom middleware (order matters!)
     "core.middleware.request_id.RequestIDMiddleware",  # First - adds request ID
     "core.middleware.fingerprint.FingerprintMiddleware",  # Second - extracts fingerprint
-    "core.middleware.audit_log.AuditLogMiddleware",  # Third - logs requests
-    "core.middleware.rate_limit.RateLimitMiddleware",  # Last - rate limiting
-]
+        "core.middleware.audit_log.AuditLogMiddleware",  # Third - logs requests
+        "core.middleware.rate_limit.RateLimitMiddleware",  # Last - rate limiting
+        "core.middleware.metrics.MetricsMiddleware",  # Custom metrics
+    ]
+    + PROMETHEUS_MIDDLEWARE_END
+)
 
 ROOT_URLCONF = "config.urls"
 
