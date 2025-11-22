@@ -49,8 +49,6 @@ from .services import (
     calculate_poll_results,
     can_view_results,
     clone_poll,
-    export_results_to_csv,
-    export_results_to_json,
 )
 from .templates import get_template, list_templates
 
