@@ -26,13 +26,13 @@ class TestPollCloning:
             security_rules={"require_authentication": False},
         )
 
-        _option1 = PollOption.objects.create(
+        option1 = PollOption.objects.create(
             poll=original_poll, text="Option 1", order=0
         )
-        _option2 = PollOption.objects.create(
+        option2 = PollOption.objects.create(
             poll=original_poll, text="Option 2", order=1
         )
-        _option3 = PollOption.objects.create(
+        option3 = PollOption.objects.create(
             poll=original_poll, text="Option 3", order=2
         )
 
@@ -74,10 +74,10 @@ class TestPollCloning:
             created_by=user,
         )
 
-        _option1 = PollOption.objects.create(
+        option1 = PollOption.objects.create(
             poll=original_poll, text="Option 1", order=0
         )
-        _option2 = PollOption.objects.create(
+        option2 = PollOption.objects.create(
             poll=original_poll, text="Option 2", order=1
         )
 
@@ -117,7 +117,7 @@ class TestPollCloning:
         assert cloned_poll.cached_total_votes == 0
         assert cloned_poll.cached_unique_voters == 0
 
-        cloned_option1 = cloned_poll.options.get(text="Option 1")
+        clonedoption1 = cloned_poll.options.get(text="Option 1")
         assert cloned_option1.cached_vote_count == 0
 
         # Verify original poll is unchanged
@@ -385,7 +385,7 @@ class TestPollCloningAPI:
             created_by=user,
         )
 
-        _option1 = PollOption.objects.create(
+        option1 = PollOption.objects.create(
             poll=original_poll, text="Option 1", order=0
         )
 

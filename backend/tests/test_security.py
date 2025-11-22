@@ -92,7 +92,7 @@ class TestSQLInjectionProtection:
 
         for payload in sql_payloads:
             # Try in URL parameter
-            _response = client.get(f"/api/v1/polls/{payload}/")
+            response = client.get(f"/api/v1/polls/{payload}/")
             # Should return 404 (not found), 400 (bad request), or 301 (redirect), not 500 (server error)
             # 301 redirects are acceptable as they indicate the URL is being normalized
             assert response.status_code in [
@@ -110,7 +110,7 @@ class TestSQLInjectionProtection:
         ]
 
         for payload in sql_payloads:
-            _response = client.get(f"/api/v1/polls/?search={payload}")
+            response = client.get(f"/api/v1/polls/?search={payload}")
             # Should handle gracefully, not crash
             assert response.status_code in [
                 200,
@@ -126,7 +126,7 @@ class TestSQLInjectionProtection:
         ]
 
         for payload in sql_payloads:
-            _response = client.post(
+            response = client.post(
                 "/api/v1/votes/cast/",
                 data=json.dumps(payload),
                 content_type="application/json",
@@ -144,7 +144,7 @@ class TestSQLInjectionProtection:
 
         # Try to delete all polls via SQL injection
         payload = "1'; DELETE FROM polls_poll; --"
-        _response = client.get(f"/api/v1/polls/{payload}/")
+        response = client.get(f"/api/v1/polls/{payload}/")
 
         # Poll count should remain unchanged
         assert Poll.objects.count() == initial_count
@@ -207,7 +207,7 @@ class TestXSSProtection:
         poll.title = "<script>alert('XSS')</script>"
         poll.save()
 
-        _response = client.get(f"/api/v1/polls/{poll.id}/")
+        response = client.get(f"/api/v1/polls/{poll.id}/")
         assert response.status_code == 200
 
         # Check Content-Type header
@@ -220,7 +220,7 @@ class TestXSSProtection:
     def test_xss_in_query_parameters(self, client):
         """Test XSS in query parameters."""
         xss_payload = "<script>alert('XSS')</script>"
-        _response = client.get(f"/api/v1/polls/?search={xss_payload}")
+        response = client.get(f"/api/v1/polls/?search={xss_payload}")
 
         # Should handle gracefully
         assert response.status_code in [200, 400]
@@ -246,7 +246,7 @@ class TestCSRFProtection:
     def test_csrf_token_required_for_post(self, client, poll, poll_option):
         """Test that POST requests require CSRF token."""
         # Make POST without CSRF token
-        _response = client.post(
+        response = client.post(
             "/api/v1/votes/cast/",
             data=json.dumps(
                 {
@@ -265,12 +265,12 @@ class TestCSRFProtection:
         client.force_login(user)
 
         # Get CSRF token
-        _csrf_response = client.get("/api/v1/polls/")
+        _csrfresponse = client.get("/api/v1/polls/")
         csrf_token = client.cookies.get("csrftoken")
 
         if csrf_token:
             # Make POST with CSRF token
-            _response = client.post(
+            response = client.post(
                 "/api/v1/votes/cast/",
                 data=json.dumps(
                     {
@@ -299,7 +299,7 @@ class TestCSRFProtection:
         ]
 
         for headers in bypass_attempts:
-            _response = client.post(
+            response = client.post(
                 "/api/v1/votes/cast/",
                 data=json.dumps(
                     {
@@ -328,7 +328,7 @@ class TestAuthenticationBypass:
         ]
 
         for endpoint in protected_endpoints:
-            _response = client.get(endpoint)
+            response = client.get(endpoint)
             # Should require authentication
             assert response.status_code in [
                 401,
@@ -350,7 +350,7 @@ class TestAuthenticationBypass:
         ]
 
         for token in invalid_tokens:
-            _response = client.get(
+            response = client.get(
                 "/api/v1/votes/my-votes/",
                 HTTP_AUTHORIZATION=f"Bearer {token}" if token else None,
             )
@@ -363,7 +363,7 @@ class TestAuthenticationBypass:
         client.force_login(user)
 
         # Try to access with different IP (simulated)
-        _response = client.get(
+        response = client.get(
             "/api/v1/votes/my-votes/",
             HTTP_X_FORWARDED_FOR="192.168.1.100",
         )
@@ -382,7 +382,7 @@ class TestAuthenticationBypass:
         ]
 
         for endpoint in admin_endpoints:
-            _response = client.get(endpoint)
+            response = client.get(endpoint)
             # Should be denied (redirect to login or 403)
             assert response.status_code in [
                 302,
@@ -401,7 +401,7 @@ class TestAuthenticationBypass:
         ]
 
         for headers in bypass_attempts:
-            _response = client.get("/api/v1/votes/my-votes/", **headers)
+            response = client.get("/api/v1/votes/my-votes/", **headers)
             # Should reject bypass attempts
             assert response.status_code in [401, 403]
 
@@ -416,7 +416,7 @@ class TestRateLimitBypass:
         # Make many rapid requests
         responses = []
         for _ in range(150):  # Exceed default limit of 100/hour
-            _response = client.get("/api/v1/polls/")
+            response = client.get("/api/v1/polls/")
             responses.append(response.status_code)
 
         # Rate limiting may not work in test environment if Redis is not available
@@ -441,7 +441,7 @@ class TestRateLimitBypass:
             # Make many requests with bypass header
             responses = []
             for _ in range(150):
-                _response = client.get("/api/v1/polls/", **headers)
+                response = client.get("/api/v1/polls/", **headers)
                 responses.append(response.status_code)
 
             # Should still be rate limited (unless DISABLE_RATE_LIMITING is True)
@@ -456,7 +456,7 @@ class TestRateLimitBypass:
 
         # Wait for rate limit window (in real test, would use time mocking)
         # For now, just verify rate limiting works
-        _response = client.get("/api/v1/polls/")
+        response = client.get("/api/v1/polls/")
         # Should either succeed or be rate limited
         assert response.status_code in [200, 429]
 
@@ -473,7 +473,7 @@ class TestIdempotencyKeyManipulation:
         # Valid idempotency key
         valid_key = "test_key_12345"
 
-        _response1 = client.post(
+        response1 = client.post(
             "/api/v1/votes/cast/",
             data=json.dumps(
                 {
@@ -519,7 +519,7 @@ class TestIdempotencyKeyManipulation:
         ]
 
         for key in injection_attempts:
-            _response = client.post(
+            response = client.post(
                 "/api/v1/votes/cast/",
                 data=json.dumps(
                     {
@@ -540,7 +540,7 @@ class TestIdempotencyKeyManipulation:
         key = "replay_attack_key"
 
         # First vote
-        _response1 = client.post(
+        response1 = client.post(
             "/api/v1/votes/cast/",
             data=json.dumps(
                 {
@@ -578,7 +578,7 @@ class TestVoteManipulation:
         """Test that voting for non-existent poll is blocked."""
         client.force_login(user)
 
-        _response = client.post(
+        response = client.post(
             "/api/v1/votes/cast/",
             data=json.dumps(
                 {
@@ -596,7 +596,7 @@ class TestVoteManipulation:
         """Test that voting for non-existent choice is blocked."""
         client.force_login(user)
 
-        _response = client.post(
+        response = client.post(
             "/api/v1/votes/cast/",
             data=json.dumps(
                 {
@@ -619,7 +619,7 @@ class TestVoteManipulation:
         # Get option from other poll
         other_option = PollOption.objects.filter(poll=other_poll).first()
         if other_option:
-            _response = client.post(
+            response = client.post(
                 "/api/v1/votes/cast/",
                 data=json.dumps(
                     {
@@ -647,7 +647,7 @@ class TestVoteManipulation:
         ]
 
         for attempt in manipulation_attempts:
-            _response = client.post(
+            response = client.post(
                 "/api/v1/votes/cast/",
                 data=json.dumps(attempt),
                 content_type="application/json",
@@ -663,7 +663,7 @@ class TestSecurityHeaders:
 
     def test_security_headers_present(self, client):
         """Test that security headers are present in responses."""
-        _response = client.get("/api/v1/polls/")
+        response = client.get("/api/v1/polls/")
 
         # Check for security headers
         headers_to_check = [
@@ -682,7 +682,7 @@ class TestSecurityHeaders:
 
     def test_x_frame_options_header(self, client):
         """Test X-Frame-Options header."""
-        _response = client.get("/api/v1/polls/")
+        response = client.get("/api/v1/polls/")
 
         # Should prevent clickjacking
         x_frame_options = response.get("X-Frame-Options", "")
@@ -691,7 +691,7 @@ class TestSecurityHeaders:
 
     def test_content_type_nosniff_header(self, client):
         """Test X-Content-Type-Options header."""
-        _response = client.get("/api/v1/polls/")
+        response = client.get("/api/v1/polls/")
 
         # Should prevent MIME type sniffing
         nosniff = response.get("X-Content-Type-Options", "")
@@ -700,7 +700,7 @@ class TestSecurityHeaders:
 
     def test_xss_protection_header(self, client):
         """Test X-XSS-Protection header."""
-        _response = client.get("/api/v1/polls/")
+        response = client.get("/api/v1/polls/")
 
         # Should enable XSS protection
         xss_protection = response.get("X-XSS-Protection", "")
@@ -736,7 +736,7 @@ class TestDataEncryption:
         """Test that sensitive data is not exposed in API responses."""
         client.force_login(user)
 
-        _response = client.get("/api/v1/votes/my-votes/")
+        response = client.get("/api/v1/votes/my-votes/")
 
         if response.status_code == 200:
             data = response.json()

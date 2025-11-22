@@ -26,7 +26,7 @@ class TestActivateScheduledPoll:
         """Test that poll activates when start time is reached."""
         # Create poll with start time in the past
         past_time = timezone.now() - timedelta(minutes=5)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Scheduled Poll",
             description="Test poll",
             created_by=user,
@@ -49,7 +49,7 @@ class TestActivateScheduledPoll:
     def test_activate_poll_already_active(self, user):
         """Test that already active poll is not reactivated."""
         past_time = timezone.now() - timedelta(minutes=5)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Active Poll",
             description="Test poll",
             created_by=user,
@@ -72,7 +72,7 @@ class TestActivateScheduledPoll:
     def test_activate_poll_not_yet_ready(self, user):
         """Test that poll with future start time is not activated."""
         future_time = timezone.now() + timedelta(hours=1)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Future Poll",
             description="Test poll",
             created_by=user,
@@ -108,7 +108,7 @@ class TestCloseScheduledPoll:
         """Test that poll closes when end time is reached."""
         # Create poll with end time in the past
         past_time = timezone.now() - timedelta(minutes=5)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Closing Poll",
             description="Test poll",
             created_by=user,
@@ -132,7 +132,7 @@ class TestCloseScheduledPoll:
     def test_close_poll_already_closed(self, user):
         """Test that already closed poll is not reclosed."""
         past_time = timezone.now() - timedelta(minutes=5)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Closed Poll",
             description="Test poll",
             created_by=user,
@@ -156,7 +156,7 @@ class TestCloseScheduledPoll:
     def test_close_poll_not_yet_ready(self, user):
         """Test that poll with future end time is not closed."""
         future_time = timezone.now() + timedelta(hours=1)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Future Closing Poll",
             description="Test poll",
             created_by=user,
@@ -179,7 +179,7 @@ class TestCloseScheduledPoll:
 
     def test_close_poll_no_end_time(self, user):
         """Test that poll without end time is not closed."""
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="No End Poll",
             description="Test poll",
             created_by=user,
@@ -215,7 +215,7 @@ class TestProcessScheduledPolls:
         """Test that process_scheduled_polls activates ready polls."""
         # Create poll ready for activation
         past_time = timezone.now() - timedelta(minutes=5)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Ready Poll",
             description="Test poll",
             created_by=user,
@@ -237,7 +237,7 @@ class TestProcessScheduledPolls:
         """Test that process_scheduled_polls closes ready polls."""
         # Create poll ready for closing
         past_time = timezone.now() - timedelta(minutes=5)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Closing Poll",
             description="Test poll",
             created_by=user,
@@ -297,7 +297,7 @@ class TestProcessScheduledPolls:
         """Test that process_scheduled_polls skips polls not ready."""
         # Future poll
         future_time = timezone.now() + timedelta(hours=1)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Future Poll",
             description="Test poll",
             created_by=user,
@@ -318,7 +318,7 @@ class TestProcessScheduledPolls:
         """Test that process_scheduled_polls handles errors gracefully."""
         # Create poll that will cause an error by mocking the activation to fail
         past_time = timezone.now() - timedelta(minutes=5)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Error Poll",
             description="Test poll",
             created_by=user,
@@ -351,7 +351,7 @@ class TestScheduledPollsTimezoneHandling:
 
         # Set poll start time to past (in UTC)
         past_utc = timezone.now() - timedelta(minutes=5)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Timezone Test Poll",
             description="Test poll",
             created_by=user,
@@ -372,7 +372,7 @@ class TestScheduledPollsTimezoneHandling:
 
         # Create poll with end time in a specific timezone
         past_utc = timezone.now() - timedelta(minutes=5)
-        _poll = Poll.objects.create(
+        poll = Poll.objects.create(
             title="Timezone Closing Poll",
             description="Test poll",
             created_by=user,

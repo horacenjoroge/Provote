@@ -15,13 +15,22 @@ from rest_framework import status
 from rest_framework.test import APIClient
 
 
+def _is_sqlite():
+    """Check if using SQLite database."""
+    try:
+        from django.conf import settings
+        return settings.DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3"
+    except Exception:
+        return True
+
+
 @pytest.mark.django_db
 @pytest.mark.slow
 class TestVoteAPILoad:
     """Load tests for voting API."""
 
     @pytest.mark.skipif(
-        "settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3'",
+        _is_sqlite(),
         reason="Concurrent load tests require PostgreSQL, skipped on SQLite due to write lock limitations.",
     )
     def test_1000_concurrent_vote_requests(self, poll, choices):
