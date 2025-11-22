@@ -139,7 +139,7 @@ class TestVoteAPILoad:
                 print(f"  {error}")
 
     @pytest.mark.skipif(
-        "settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3'",
+        _is_sqlite(),
         reason="Concurrent load tests require PostgreSQL, skipped on SQLite due to write lock limitations.",
     )
     def test_concurrent_votes_same_user_prevented(self, user, poll, choices):
@@ -196,7 +196,7 @@ class TestVoteAPILoad:
         assert vote_count == 1, f"Expected 1 vote, got {vote_count}"
 
     @pytest.mark.skipif(
-        "settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3'",
+        _is_sqlite(),
         reason="Concurrent load tests require PostgreSQL, skipped on SQLite due to write lock limitations.",
     )
     def test_concurrent_votes_different_users_succeed(self, poll, choices):
