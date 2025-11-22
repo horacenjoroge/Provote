@@ -265,7 +265,7 @@ class TestCSRFProtection:
         client.force_login(user)
 
         # Get CSRF token
-        _csrfresponse = client.get("/api/v1/polls/")
+        csrf_response = client.get("/api/v1/polls/")
         csrf_token = client.cookies.get("csrftoken")
 
         if csrf_token:

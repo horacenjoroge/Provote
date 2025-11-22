@@ -33,7 +33,7 @@ class TestSingleIPSingleOptionPattern:
 
         # Create 5 votes from same IP to same option (use different users to avoid unique constraint)
         for i in range(5):
-            vote_user = User.objects.create_user(
+            voteuser = User.objects.create_user(
                 username=f"testuser_{i}_{uuid.uuid4().hex[:8]}", password="pass"
             )
             Vote.objects.create(
@@ -102,7 +102,7 @@ class TestSingleIPSingleOptionPattern:
 
         # Create only 2 votes (below threshold of 5) - use different users
         for i in range(2):
-            vote_user = User.objects.create_user(
+            voteuser = User.objects.create_user(
                 username=f"testuser_{i}_{uuid.uuid4().hex[:8]}", password="pass"
             )
             Vote.objects.create(
@@ -131,7 +131,7 @@ class TestTimeClusteredVotes:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -169,7 +169,7 @@ class TestTimeClusteredVotes:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -236,7 +236,7 @@ class TestGeographicAnomalies:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -289,7 +289,7 @@ class TestUserAgentAnomalies:
 
         # Create votes from different users with same UA
         for i in range(10):
-            _user = User.objects.create_user(username=f"user{i}", password="pass")
+            user = User.objects.create_user(username=f"user{i}", password="pass")
             Vote.objects.create(
                 user=user,
                 poll=poll,
@@ -321,7 +321,7 @@ class TestUserAgentAnomalies:
         ]
 
         for i, ua in enumerate(user_agents):
-            _user = User.objects.create_user(username=f"user{i}", password="pass")
+            user = User.objects.create_user(username=f"user{i}", password="pass")
             Vote.objects.create(
                 user=user,
                 poll=poll,
@@ -351,7 +351,7 @@ class TestPatternAnalysisIntegration:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -390,7 +390,7 @@ class TestPatternAnalysisIntegration:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
         ip_address = "192.168.1.1"
@@ -435,7 +435,7 @@ class TestPatternAnalysisIntegration:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
         ip_address = "192.168.1.1"
@@ -485,7 +485,7 @@ class TestPatternAnalysisIntegration:
 
         users = []
         for i in range(5):
-            _user = User.objects.create_user(username=f"user{i}", password="pass")
+            user = User.objects.create_user(username=f"user{i}", password="pass")
             users.append(user)
 
         # Create legitimate votes: different users, different options, spread over time

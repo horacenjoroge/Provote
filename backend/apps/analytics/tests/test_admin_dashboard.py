@@ -6,7 +6,7 @@ import time
 from datetime import timedelta
 
 import pytest
-from apps.analytics.models import FraudAlert, IPBlock
+from apps.analytics.models import FraudAlert
 from apps.polls.models import Poll, PollOption
 from apps.votes.models import Vote
 from django.contrib.auth.models import User

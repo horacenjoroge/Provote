@@ -22,7 +22,7 @@ class TestFingerprintValidationPerformance:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        _option = PollOption.objects.create(poll=poll, text="Option 1")
+        option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Update cache
         update_fingerprint_cache("perf_fp", poll.id, user.id, "192.168.1.1")
@@ -49,7 +49,7 @@ class TestFingerprintValidationPerformance:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        _option = PollOption.objects.create(poll=poll, text="Option 1")
+        option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Create many old votes (outside time window)
         # Use anonymous votes to avoid unique constraint
@@ -99,7 +99,7 @@ class TestFingerprintValidationPerformance:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        _option = PollOption.objects.create(poll=poll, text="Option 1")
+        option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # First check - should query database
         connection.queries_log.clear()
@@ -133,7 +133,7 @@ class TestFingerprintValidationPerformance:
         cache.clear()
 
         poll = Poll.objects.create(title="Test Poll", created_by=user)
-        _option = PollOption.objects.create(poll=poll, text="Option 1")
+        option = PollOption.objects.create(poll=poll, text="Option 1")
 
         # Simulate scenario: Many votes exist, but we only query recent ones
         # Create votes across different time periods

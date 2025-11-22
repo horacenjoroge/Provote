@@ -38,7 +38,7 @@ class TestTotalVotesOverTime:
         poll.starts_at = datetime(2024, 1, 1, 0, 0, 0, tzinfo=dt_timezone.utc)
         poll.save()
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -86,7 +86,7 @@ class TestTotalVotesOverTime:
         poll.starts_at = datetime(2024, 1, 1, 0, 0, 0, tzinfo=dt_timezone.utc)
         poll.save()
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -135,7 +135,7 @@ class TestVotesByHour:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -190,7 +190,7 @@ class TestVotesByDay:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -280,7 +280,7 @@ class TestParticipationRate:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -314,7 +314,7 @@ class TestAverageTimeToVote:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -353,7 +353,7 @@ class TestDropOffRate:
         from apps.votes.models import Vote, VoteAttempt
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -454,7 +454,7 @@ class TestComprehensiveAnalytics:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -504,7 +504,7 @@ class TestAnalyticsSummary:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -547,7 +547,7 @@ class TestAnalyticsWithVariousDataVolumes:
 
         timestamp = int(time.time() * 1000000)
         for i in range(100):
-            _user = User.objects.create_user(
+            user = User.objects.create_user(
                 username=f"user_{timestamp}_{i}", password="pass"
             )
             Vote.objects.create(
@@ -576,7 +576,7 @@ class TestAnalyticsWithVariousDataVolumes:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -589,7 +589,7 @@ class TestAnalyticsWithVariousDataVolumes:
 
         # Create votes across multiple hours (use different users to avoid unique constraint)
         for hour in range(10):
-            vote_user = User.objects.create_user(
+            voteuser = User.objects.create_user(
                 username=f"testuser_h{hour}_{uuid.uuid4().hex[:8]}", password="pass"
             )
             vote_time = poll.starts_at + timedelta(hours=hour)
@@ -632,7 +632,7 @@ class TestAnalyticsPerformance:
         timestamp = int(time.time() * 1000000)
         users = []
         for i in range(1000):
-            _user = User.objects.create_user(
+            user = User.objects.create_user(
                 username=f"user_{timestamp}_{i}", password="pass"
             )
             users.append(user)
@@ -675,7 +675,7 @@ class TestAnalyticsPerformance:
         from apps.votes.models import Vote
         from django.contrib.auth.models import User
 
-        _user = User.objects.create_user(
+        user = User.objects.create_user(
             username=f"testuser_{uuid.uuid4().hex[:8]}", password="pass"
         )
 
@@ -687,7 +687,7 @@ class TestAnalyticsPerformance:
         # Create votes across many time buckets (use different users to avoid unique constraint)
         base_time = poll.starts_at
         for hour in range(100):
-            vote_user = User.objects.create_user(
+            voteuser = User.objects.create_user(
                 username=f"testuser_h{hour}_{uuid.uuid4().hex[:8]}", password="pass"
             )
             vote_time = base_time + timedelta(hours=hour)
