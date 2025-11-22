@@ -220,7 +220,7 @@ class TestHealthCheckEndpoint:
 
     def test_health_endpoint_exists(self):
         """Test that health endpoint is defined in URLs."""
-        from django.urls import reverse, NoReverseMatch
+        from django.urls import NoReverseMatch, reverse
 
         try:
             url = reverse("health-check")

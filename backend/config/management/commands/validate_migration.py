@@ -2,9 +2,9 @@
 Management command to validate that a migration can be applied.
 """
 
+from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
-from django.apps import apps
 
 
 class Command(BaseCommand):
@@ -70,8 +70,9 @@ class Command(BaseCommand):
                         self.stdout.write(f"     Model: {operation.model_name}")
 
             # Check for pending migrations
-            from django.core.management import call_command
             from io import StringIO
+
+            from django.core.management import call_command
 
             output = StringIO()
             call_command("showmigrations", app_name, stdout=output, no_color=True)

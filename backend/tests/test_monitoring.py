@@ -9,10 +9,10 @@ Tests verify:
 """
 
 import os
-import yaml
 from pathlib import Path
 
 import pytest
+import yaml
 
 
 class TestPrometheusConfiguration:

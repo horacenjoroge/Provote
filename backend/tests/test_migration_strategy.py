@@ -11,13 +11,13 @@ Tests verify:
 
 import os
 import subprocess
+from io import StringIO
 from pathlib import Path
 
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import connection, transaction
-from io import StringIO
 
 
 class TestMigrationSafetyCheck:
@@ -32,8 +32,9 @@ class TestMigrationSafetyCheck:
             assert Command is not None
         except ImportError:
             # If import fails, check if command can be called
-            from django.core.management import call_command
             from io import StringIO
+
+            from django.core.management import call_command
 
             output = StringIO()
             try:
@@ -83,8 +84,9 @@ class TestMigrationValidation:
             assert Command is not None
         except ImportError:
             # If import fails, check if command can be called
-            from django.core.management import call_command
             from io import StringIO
+
+            from django.core.management import call_command
 
             output = StringIO()
             try:
@@ -127,8 +129,9 @@ class TestRollbackMigration:
             assert Command is not None
         except ImportError:
             # If import fails, check if command can be called
-            from django.core.management import call_command
             from io import StringIO
+
+            from django.core.management import call_command
 
             output = StringIO()
             try:
@@ -174,8 +177,9 @@ class TestVerifyMigrationData:
             assert Command is not None
         except ImportError:
             # If import fails, check if command can be called
-            from django.core.management import call_command
             from io import StringIO
+
+            from django.core.management import call_command
 
             output = StringIO()
             try:
@@ -389,8 +393,9 @@ class TestMigrationBackwardCompatibility:
     def test_migration_can_be_applied_without_downtime(self, db):
         """Test that migrations can be checked for downtime requirements."""
         # This is a conceptual test - actual implementation would check migration operations
-        from django.core.management import call_command
         from io import StringIO
+
+        from django.core.management import call_command
 
         output = StringIO()
         try:

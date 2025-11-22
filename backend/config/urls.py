@@ -33,8 +33,8 @@ from rest_framework.response import Response
 )  # Only use JSONRenderer to avoid BrowsableAPIRenderer template issues
 def health_check(request):
     """Health check endpoint for Docker and load balancers."""
-    from django.db import connection
     from django.core.cache import cache
+    from django.db import connection
 
     # Check database connectivity
     db_status = "healthy"

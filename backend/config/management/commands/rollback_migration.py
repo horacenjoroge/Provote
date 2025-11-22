@@ -2,9 +2,9 @@
 Management command to rollback a specific migration.
 """
 
+from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
-from django.apps import apps
 
 
 class Command(BaseCommand):
@@ -69,8 +69,8 @@ class Command(BaseCommand):
             # Create backup unless disabled
             if not no_backup:
                 self.stdout.write("Creating backup before rollback...")
-                import subprocess
                 import os
+                import subprocess
 
                 script_path = os.path.join(
                     os.path.dirname(
@@ -103,8 +103,9 @@ class Command(BaseCommand):
             # Determine target migration
             if not target:
                 # Find previous migration
-                from django.core.management import call_command
                 from io import StringIO
+
+                from django.core.management import call_command
 
                 output = StringIO()
                 call_command("showmigrations", app_name, stdout=output, no_color=True)

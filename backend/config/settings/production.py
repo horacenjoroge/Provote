@@ -128,8 +128,8 @@ SENTRY_RELEASE = env("SENTRY_RELEASE", default="1.0.0")  # noqa: F405
 if SENTRY_DSN:
     try:
         import sentry_sdk
-        from sentry_sdk.integrations.django import DjangoIntegration
         from sentry_sdk.integrations.celery import CeleryIntegration
+        from sentry_sdk.integrations.django import DjangoIntegration
 
         sentry_sdk.init(
             dsn=SENTRY_DSN,

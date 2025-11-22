@@ -2,9 +2,9 @@
 Management command to verify data integrity after a migration.
 """
 
+from django.apps import apps
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
-from django.apps import apps
 
 
 class Command(BaseCommand):
